@@ -50,7 +50,7 @@ static class Program
         {
             tray.Icon = normalIcon;
             tray.ContextMenuStrip = new ContextMenuStrip();
-            tray.DoubleClick += (_, _) => ShowSettings();
+            tray.MouseClick += (_, e) => { if (e.Button == MouseButtons.Left) ShowSettings(); }; // one left click opens the app
             win = new HotkeyWindow(async id => await RunFix(id == 1 ? Mode.Fix : Mode.Clean));
             ApplyHotkey();
             _ = CheckUpdate(silent: true);
@@ -164,13 +164,13 @@ static class Program
 
         void ShowSettings()
         {
-            if (settingsOpen) return;
+            if (settingsOpen) { openForm?.Activate(); return; } // already open: bring it to the front
             settingsOpen = true;
             win.Unregister(); // else the global hotkey swallows the key you are trying to record
             SettingsForm f;
             do
             {
-                f = new SettingsForm(Settings.Current, IsStartup(), (s, startup) => { s.Save(); SetStartup(startup); ApplyHotkey(); }, () => _ = CheckUpdate());
+                f = openForm = new SettingsForm(Settings.Current, IsStartup(), (s, startup) => { s.Save(); SetStartup(startup); ApplyHotkey(); }, () => _ = CheckUpdate());
                 f.ShowDialog();
                 f.Dispose();
             } while (f.Reopen);
@@ -178,6 +178,7 @@ static class Program
             ApplyHotkey();
         }
         bool settingsOpen;
+        SettingsForm? openForm;
 
         static bool IsStartup() => Registry.CurrentUser.OpenSubKey(RunKey)?.GetValue("Taswib") != null;
 

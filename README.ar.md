@@ -65,7 +65,7 @@ powershell -c "irm https://raw.githubusercontent.com/deviengeorge/taswib/main/in
 
 1. نزّل **`Taswib-win-Setup.exe`** من صفحة [الإصدارات](../../releases/latest) وشغّله.
 2. هيظهر البرنامج في الـ tray (تحت على اليمين جنب الساعة).
-3. دوس مرتين على الأيقونة ← **Settings** ← فعّل **Start with Windows**.
+3. دوس على الأيقونة ← **Settings** ← فعّل **Start with Windows**.
 
 مش عايز تنصيب؟ نزّل النسخة المحمولة **`Taswib.exe`** من نفس الصفحة.
 
@@ -82,7 +82,7 @@ powershell -c "irm https://raw.githubusercontent.com/deviengeorge/taswib/main/in
 
 <div dir="rtl">
 
-دوس مرتين على أيقونة الـ tray. التغييرات بتتحفظ فورًا، والشكل فاتح أو غامق حسب الويندوز. صور حقيقية لكل الصفحات في [`docs/screens`](docs/screens) (بتتصوّر أوتوماتيك من تشغيل على ويندوز في CI).
+دوس مرة على أيقونة الـ tray. التغييرات بتتحفظ فورًا، والشكل فاتح أو غامق حسب الويندوز. صور حقيقية لكل الصفحات في [`docs/screens`](docs/screens) (بتتصوّر أوتوماتيك من تشغيل على ويندوز في CI).
 
 | الصفحة | فيها إيه |
 | --- | --- |

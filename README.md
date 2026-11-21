@@ -55,7 +55,7 @@ Or by hand:
 
 1. Download **`Taswib-win-Setup.exe`** from [Releases](../../releases/latest) and run it.
 2. Taswib appears in the tray (bottom-right, near the clock).
-3. Double-click the tray icon → **Settings** → tick **Start with Windows**.
+3. Click the tray icon → **Settings** → tick **Start with Windows**.
 
 Prefer no install? Grab the portable **`Taswib.exe`** from the same page.
 
@@ -68,7 +68,7 @@ Prefer no install? Grab the portable **`Taswib.exe`** from the same page.
 
 ![settings](docs/settings.png)
 
-Double-click the tray icon. Changes save instantly. Light and dark follow Windows. Real screenshots of every page: [`docs/screens`](docs/screens) (captured automatically from a Windows run in CI).
+Click the tray icon. Changes save instantly. Light and dark follow Windows. Real screenshots of every page: [`docs/screens`](docs/screens) (captured automatically from a Windows run in CI).
 
 | Page | What's inside |
 | --- | --- |
