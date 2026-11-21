@@ -32,6 +32,11 @@ jobs:
         run: >
           dotnet publish src/Taswib -c Release -r win-x64 --self-contained
           -p:DebugType=none -p:Version=${{ env.VER }} -o pub
+      - name: Publish small framework-dependent folder (needs .NET 8 Desktop Runtime)
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: >
+          dotnet publish src/Taswib -c Release -r win-x64 --no-self-contained
+          -p:DebugType=none -p:Version=${{ env.VER }} -o pub-fd
       - name: Installer (Velopack)
         if: startsWith(github.ref, 'refs/tags/v')
         shell: bash
@@ -39,8 +44,12 @@ jobs:
           dotnet tool install -g vpk --version 1.2.161
           vpk download github --repoUrl https://github.com/${{ github.repository }} --token ${{ github.token }} || echo "no previous release, full package only"
           vpk pack -u Taswib -v ${{ env.VER }} -p pub -e Taswib.exe -i src/Taswib/taswib.ico
+          # small channel "fd": installed copies stay on it and update from it
+          vpk download github --repoUrl https://github.com/${{ github.repository }} --token ${{ github.token }} --channel fd -o Releases-fd || echo "no previous fd release"
+          vpk pack -u Taswib -v ${{ env.VER }} -p pub-fd -e Taswib.exe -i src/Taswib/taswib.ico --channel fd --framework net8-x64-desktop -o Releases-fd
+          ls Releases Releases-fd
       - name: Release
         if: startsWith(github.ref, 'refs/tags/v')
         shell: bash
-        run: gh release create "$GITHUB_REF_NAME" Releases/* out/Taswib.exe --generate-notes
+        run: gh release create "$GITHUB_REF_NAME" Releases/* Releases-fd/* out/Taswib.exe --generate-notes
         env: { GH_TOKEN: '${{ github.token }}' }

@@ -27,11 +27,10 @@ sealed class SettingsForm : Form
         Text = T("title");
         Icon = Icon.ExtractAssociatedIcon(Environment.ProcessPath!);
         FormBorderStyle = FormBorderStyle.FixedDialog; MaximizeBox = false; MinimizeBox = false;
-        StartPosition = FormStartPosition.CenterScreen; ClientSize = new Size(790, 500);
+        StartPosition = FormStartPosition.CenterScreen; ClientSize = new Size(790, 560);
         BackColor = Theme.Bg; Font = Theme.Body;
 
-        var names = new[] { T("nav_general"), T("nav_shortcuts"), T("nav_fix"), T("nav_clean"), T("nav_about") };
-        nav = names.Select(n => new NavItem(n)).ToArray();
+        nav = Names().Select(n => new NavItem(n)).ToArray();
         var side = new Panel { Dock = Arabic ? DockStyle.Right : DockStyle.Left, Width = 190, BackColor = Theme.Side };
         for (var i = nav.Length - 1; i >= 0; i--)
         {
@@ -59,17 +58,19 @@ sealed class SettingsForm : Form
     }
     [DllImport("dwmapi.dll")] static extern int DwmSetWindowAttribute(nint h, int attr, ref int v, int size);
 
+    static string[] Names() => new[] { T("nav_general"), T("nav_shortcuts"), T("nav_fix"), T("nav_clean"), T("nav_contact"), T("nav_about") };
+
     void Save() => apply(s, startupOn);
 
     void Show(int page)
     {
         lastPage = page;
         for (var i = 0; i < nav.Length; i++) { nav[i].Selected = i == page; nav[i].Invalidate(); }
-        title.Text = new[] { T("nav_general"), T("nav_shortcuts"), T("nav_fix"), T("nav_clean"), T("nav_about") }[page];
+        title.Text = Names()[page];
         foreach (Control c in body.Controls) c.Dispose();
         body.Controls.Clear();
         body.SuspendLayout();
-        foreach (var c in page switch { 0 => General(), 1 => Shortcuts(), 2 => Fixing(), 3 => Cleaning(), _ => About() }) body.Controls.Add(c);
+        foreach (var c in page switch { 0 => General(), 1 => Shortcuts(), 2 => Fixing(), 3 => Cleaning(), 4 => ContactPage(), _ => About() }) body.Controls.Add(c);
         body.ResumeLayout();
     }
 
@@ -118,6 +119,20 @@ sealed class SettingsForm : Form
         yield return new Card(T("punct_t"), T("punct_d"), Tog(s.CleanPunctuation, v => { s.CleanPunctuation = v; Save(); }));
         yield return new Card(T("norm_t"), T("norm_d"), Tog(s.CleanNormalize, v => { s.CleanNormalize = v; Save(); }));
     }
+
+    static readonly Bitmap Photo = new(typeof(SettingsForm).Assembly.GetManifestResourceStream("Taswib.contact.png")!);
+
+    IEnumerable<Control> ContactPage()
+    {
+        yield return new Profile(Photo, Links.Name, T("c_sub"), T("c_intro"));
+        yield return Link("c_email", Links.Email, "btn_send", "mailto:" + Links.Email);
+        yield return Link("c_whatsapp", Links.PhoneDisplay, "btn_chat", Links.WhatsApp);
+        yield return Link("c_linkedin", Links.LinkedInShort, "open", Links.LinkedIn);
+        if (Links.TelegramUser != "") yield return Link("c_telegram", "@" + Links.TelegramUser, "btn_chat", "https://t.me/" + Links.TelegramUser);
+    }
+
+    static Card Link(string title, string value, string btn, string url) =>
+        new(T(title), value, Btn(T(btn), () => Process.Start(new ProcessStartInfo(url) { UseShellExecute = true })));
 
     IEnumerable<Control> About()
     {

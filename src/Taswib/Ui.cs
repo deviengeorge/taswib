@@ -18,6 +18,7 @@ static class Theme
     public static readonly Font Small = new("Segoe UI", 9f);
     public static readonly Font Semi = new("Segoe UI Semibold", 10f);
     public static readonly Font Title = new("Segoe UI Semibold", 18f);
+    public static readonly Font Name = new("Segoe UI Semibold", 14f);
 
     static Color C(int r, int g, int b) => Color.FromArgb(r, g, b);
 
@@ -156,7 +157,7 @@ sealed class Card : Panel
     public Card(string title, string desc, Control? right)
     {
         this.title = title; this.desc = desc; this.right = right;
-        DoubleBuffered = true; Size = new Size(534, 70); Margin = new Padding(0, 0, 0, 10);
+        DoubleBuffered = true; Size = new Size(534, 66); Margin = new Padding(0, 0, 0, 10);
         if (right != null) Controls.Add(right);
     }
     protected override void OnLayout(LayoutEventArgs e)
@@ -219,5 +220,38 @@ sealed class Brand : Base
         g.DrawImage(icon, new Rectangle(ix, 17, 30, 30));
         var tr = Strings.Arabic ? new Rectangle(10, 0, Width - 18 - 30 - 20, Height) : new Rectangle(58, 0, Width - 70, Height);
         TextRenderer.DrawText(g, "Taswib", Theme.Semi, tr, Theme.Text, Theme.Flags());
+    }
+}
+
+sealed class Profile : Base
+{
+    readonly Bitmap photo;
+    readonly string name, sub, intro;
+
+    public Profile(Bitmap photo, string name, string sub, string intro)
+    {
+        this.photo = photo; this.name = name; this.sub = sub; this.intro = intro;
+        Size = new Size(534, 132); Margin = new Padding(0, 0, 0, 10);
+    }
+    protected override void OnPaint(PaintEventArgs e)
+    {
+        var g = e.Graphics; g.Clear(Theme.Bg); g.SmoothingMode = SmoothingMode.AntiAlias; g.InterpolationMode = InterpolationMode.HighQualityBicubic;
+        using (var p = Theme.Round(new RectangleF(0.5f, 0.5f, Width - 1.5f, Height - 1.5f), 10))
+        {
+            using var b = new SolidBrush(Theme.Card); g.FillPath(b, p);
+            using var pen = new Pen(Theme.Border); g.DrawPath(pen, p);
+        }
+        const int d = 92;
+        var px = Strings.Arabic ? Width - 18 - d : 18;
+        var circle = new Rectangle(px, (Height - d) / 2, d, d);
+        using (var cp = new GraphicsPath()) { cp.AddEllipse(circle); g.SetClip(cp); g.DrawImage(photo, circle); g.ResetClip(); }
+        using (var ring = new Pen(Theme.Accent, 2f)) g.DrawEllipse(ring, circle);
+
+        var w = Width - 18 - d - 18 - 18;
+        var x = Strings.Arabic ? 18 : 18 + d + 18;
+        TextRenderer.DrawText(g, name, Theme.Name, new Rectangle(x, 20, w, 28), Theme.Text, Theme.Flags());
+        TextRenderer.DrawText(g, sub, Theme.Small, new Rectangle(x, 50, w, 22), Theme.Sub, Theme.Flags());
+        var wrap = TextFormatFlags.WordBreak | TextFormatFlags.NoPadding | (Strings.Arabic ? TextFormatFlags.Right | TextFormatFlags.RightToLeft : 0);
+        TextRenderer.DrawText(g, intro, Theme.Body, new Rectangle(x, 80, w, 40), Theme.Text, wrap);
     }
 }

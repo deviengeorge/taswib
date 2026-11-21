@@ -59,6 +59,8 @@ powershell -c "irm https://raw.githubusercontent.com/deviengeorge/taswib/main/in
 
 <div dir="rtl">
 
+السكريبت بيختار النسخة المناسبة لوحده: مثبّت صغير (حوالي 10 ميجا) لو .NET 8 Desktop Runtime متثبّت عندك، وإلا النسخة الكاملة (حوالي 79 ميجا ومش محتاج تثبّت حاجة تانية).
+
 أو بإيدك:
 
 1. نزّل **`Taswib-win-Setup.exe`** من صفحة [الإصدارات](../../releases/latest) وشغّله.
@@ -88,6 +90,7 @@ powershell -c "irm https://raw.githubusercontent.com/deviengeorge/taswib/main/in
 | الاختصارات | اختصار التصليح (الافتراضي `Insert`) · اختصار التنضيف (الافتراضي `Shift+Pause`) |
 | التصليح | إيه اللي يتصلّح (المظلّل / + السطر / + الخانة) · الاتجاه · تبديل اللغة · استرجاع الحافظة |
 | التنضيف | علامات الترقيم · توحيد الحروف |
+| تواصل معايا | الصورة، الإيميل، واتساب، لينكدإن |
 | عن البرنامج | الإصدار · دوّر على تحديث · GitHub |
 
 بتتحفظ في `%APPDATA%\Taswib\settings.json`.

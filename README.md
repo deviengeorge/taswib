@@ -49,6 +49,8 @@ From **cmd**:
 powershell -c "irm https://raw.githubusercontent.com/deviengeorge/taswib/main/install.ps1 | iex"
 ```
 
+The script picks the right build: a small installer (about 10 MB) if the .NET 8 Desktop Runtime is already installed, otherwise the self-contained one (about 79 MB, nothing else to install).
+
 Or by hand:
 
 1. Download **`Taswib-win-Setup.exe`** from [Releases](../../releases/latest) and run it.
@@ -74,6 +76,7 @@ Double-click the tray icon. Changes save instantly. Light and dark follow Window
 | Shortcuts | Fix shortcut (default `Insert`) · Clean shortcut (default `Shift+Pause`) |
 | Fixing | What to fix (selection / + line / + whole box) · Direction · Switch layout · Restore clipboard |
 | Cleaning | Fix punctuation · Unify letters |
+| Contact | Photo, email, WhatsApp, LinkedIn |
 | About | Version · Check for updates · GitHub |
 
 Saved in `%APPDATA%\Taswib\settings.json`.
