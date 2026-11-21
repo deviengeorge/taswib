@@ -27,7 +27,7 @@ function Write-Settings([string]$lang) {
 }
 function Stop-Taswib { Get-Process Taswib -ErrorAction SilentlyContinue | Stop-Process -Force; Start-Sleep -Milliseconds 800 }
 function Shot([string]$title, [string]$file) {
-  $h = [W]::FindWindow($null, $title)
+  $h = [W]::FindWindow([NullString]::Value, $title)
   if ($h -eq [IntPtr]::Zero) { Write-Host "window '$title' not found"; $b = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds; $r = New-Object W+RECT; $r.L = $b.Left; $r.T = $b.Top; $r.R = $b.Right; $r.B = $b.Bottom }
   else { $r = New-Object W+RECT; [void][W]::GetWindowRect($h, [ref]$r) }
   $bmp = New-Object System.Drawing.Bitmap ($r.R - $r.L), ($r.B - $r.T)
