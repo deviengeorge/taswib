@@ -2,7 +2,7 @@
 $ErrorActionPreference = 'Stop'
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 $rel = Invoke-RestMethod 'https://api.github.com/repos/deviengeorge/taswib/releases/latest' -Headers @{ 'User-Agent' = 'taswib-installer' }
-# Small installer (~10 MB) if the .NET 8 Desktop Runtime is already here, otherwise the self-contained one (no admin needed).
+# Small installer (~16 MB) if the .NET 8 Desktop Runtime is already here, otherwise the self-contained one (no admin needed).
 $hasRuntime = Test-Path (Join-Path $env:ProgramFiles 'dotnet\shared\Microsoft.WindowsDesktop.App\8.*')
 $want = if ($hasRuntime) { 'Taswib-fd-Setup.exe' } else { 'Taswib-win-Setup.exe' }
 $asset = $rel.assets | Where-Object name -eq $want | Select-Object -First 1
