@@ -246,12 +246,15 @@ static class Program
             if (busy) return Result.Busy;
             busy = true;
             var result = Result.NothingSelected;
+            Dictionary<string, object>? snap = null;
+            var snapped = false;
             try
             {
                 var cfg = Settings.Current;
                 await ReleaseModifiers();
                 var before = await HistoryIds();
-                var snap = Snapshot(); // every format, so images and files survive too
+                snap = Snapshot(); // every format, so images and files survive too
+                snapped = true;
                 Clipboard.Clear();
                 Press(Keys.ControlKey, Keys.C);
                 var sel = await Wait();
@@ -289,7 +292,11 @@ static class Program
                 await Task.Delay(400); // history entries appear a moment after the copy
                 await PurgeHistory(before);
             }
-            catch (Exception e) { Log.Write("fix failed", e); result = Result.Failed; } // e.g. clipboard locked by another app
+            catch (Exception e)
+            {
+                Log.Write("fix failed", e); result = Result.Failed; // e.g. clipboard locked by another app
+                if (snapped) { try { Restore(snap); } catch (Exception e2) { Log.Write("restore after failure failed", e2); } } // best effort: don't leave the user's clipboard wiped
+            }
             finally { busy = false; }
             return result;
         }
