@@ -66,15 +66,15 @@ Prefer no install? Grab the portable **`Taswib.exe`** from the same page.
 
 ![settings](docs/settings.png)
 
-| Setting | What it does |
+Double-click the tray icon. Changes save instantly. Light and dark follow Windows.
+
+| Page | What's inside |
 | --- | --- |
-| Shortcut | Click the box, press any combo, e.g. `Ctrl+Shift+Space` |
-| What to fix | Selection only · selection else line before cursor · selection else whole text box |
-| Direction | Auto-detect, or force English→Arabic / Arabic→English |
-| Clean shortcut | Second hotkey that cleans punctuation and letters (`Shift+Pause`) |
-| Language | English or Egyptian Arabic interface |
-| Switch keyboard layout | Jump to Arabic/English after fixing |
-| Restore clipboard | Put back what you had copied |
+| General | Enabled · Start with Windows · Language (English / Egyptian Arabic) |
+| Shortcuts | Fix shortcut (default `Insert`) · Clean shortcut (default `Shift+Pause`) |
+| Fixing | What to fix (selection / + line / + whole box) · Direction · Switch layout · Restore clipboard |
+| Cleaning | Fix punctuation · Unify letters |
+| About | Version · Check for updates · GitHub |
 
 Saved in `%APPDATA%\Taswib\settings.json`.
 

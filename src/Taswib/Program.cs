@@ -61,7 +61,7 @@ static class Program
             BuildMenu();
             win.Unregister();
             tray.Text = $"Taswib — {(s.Enabled ? s.Hotkey : T("disabled"))}";
-            if (!s.Enabled) return;
+            if (!s.Enabled || settingsOpen) return; // hotkeys stay released while Settings is open
             foreach (var (id, hk) in new[] { (1, s.Hotkey), (2, s.CleanHotkey) })
             {
                 if (string.IsNullOrWhiteSpace(hk)) continue;
@@ -75,11 +75,13 @@ static class Program
             if (settingsOpen) return;
             settingsOpen = true;
             win.Unregister(); // else the global hotkey swallows the key you are trying to record
-            using var f = new SettingsForm(Settings.Current, IsStartup(), (s, startup) =>
+            SettingsForm f;
+            do
             {
-                s.Save(); SetStartup(startup); ApplyHotkey();
-            });
-            f.ShowDialog();
+                f = new SettingsForm(Settings.Current, IsStartup(), (s, startup) => { s.Save(); SetStartup(startup); ApplyHotkey(); }, () => _ = CheckUpdate());
+                f.ShowDialog();
+                f.Dispose();
+            } while (f.Reopen);
             settingsOpen = false;
             ApplyHotkey();
         }
