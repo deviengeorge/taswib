@@ -9,7 +9,7 @@ public enum Scope { SelectionOnly, SelectionOrLine, SelectionOrAll }
 public sealed class Settings
 {
     public bool Enabled { get; set; } = true;
-    public string Hotkey { get; set; } = "Pause";
+    public string Hotkey { get; set; } = "Insert";
     public Scope Scope { get; set; } = Scope.SelectionOrLine;
     public Direction Direction { get; set; } = Direction.Auto;
     public bool RestoreClipboard { get; set; } = true;

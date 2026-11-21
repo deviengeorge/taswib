@@ -10,4 +10,4 @@ Invoke-WebRequest $asset.browser_download_url -OutFile $tmp -UseBasicParsing
 Write-Host 'Installing...'
 Start-Process $tmp -ArgumentList '--silent' -Wait
 Remove-Item $tmp -ErrorAction SilentlyContinue
-Write-Host 'Done. Taswib is in the tray. Press Pause to fix text.'
+Write-Host 'Done. Taswib is in the tray. Press Insert to fix text.'

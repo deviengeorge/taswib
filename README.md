@@ -18,7 +18,7 @@
 </div>
 
 Typing fast, didn't notice the keyboard was on English, and got `high fd; ;dt phg;`?
-Press **Pause**. You get `اهلا بيك كيف حالك`.
+Press **Insert**. You get `اهلا بيك كيف حالك`.
 
 ![demo](docs/demo.png)
 
@@ -60,7 +60,7 @@ Prefer no install? Grab the portable **`Taswib.exe`** from the same page.
 ## Use
 
 1. Select the wrong text, or select nothing (it fixes the line before the cursor).
-2. Press **Pause** (default).
+2. Press **Insert** (default).
 
 ## Settings
 
@@ -86,7 +86,9 @@ Saved in `%APPDATA%\Taswib\settings.json`.
 
 **It does nothing in some window.** Windows blocks input into apps running as administrator. Run Taswib as administrator too, or use a normal window.
 
-**Pause key missing on my laptop.** Open Settings and choose another shortcut.
+**Insert key missing on my laptop.** Some laptops need `Fn`+key. Or open Settings and choose another shortcut.
+
+**Insert no longer toggles overwrite mode.** Taswib takes the key globally. Pick another shortcut in Settings if you need overwrite mode.
 
 ## Build from source
 
