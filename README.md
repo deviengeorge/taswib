@@ -35,6 +35,20 @@ Press **Pause**. You get `اهلا بيك كيف حالك`.
 
 ## Install
 
+**One line** (PowerShell, no admin needed):
+
+```powershell
+irm https://raw.githubusercontent.com/deviengeorge/taswib/main/install.ps1 | iex
+```
+
+From **cmd**:
+
+```
+powershell -c "irm https://raw.githubusercontent.com/deviengeorge/taswib/main/install.ps1 | iex"
+```
+
+Or by hand:
+
 1. Download **`Taswib-win-Setup.exe`** from [Releases](../../releases/latest) and run it.
 2. Taswib appears in the tray (bottom-right, near the clock).
 3. Double-click the tray icon → **Settings** → tick **Start with Windows**.

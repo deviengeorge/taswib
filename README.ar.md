@@ -41,6 +41,24 @@
 
 ## التنصيب
 
+**بسطر واحد** (PowerShell ومن غير صلاحيات أدمن):
+
+</div>
+
+```powershell
+irm https://raw.githubusercontent.com/deviengeorge/taswib/main/install.ps1 | iex
+```
+
+من **cmd**:
+
+```
+powershell -c "irm https://raw.githubusercontent.com/deviengeorge/taswib/main/install.ps1 | iex"
+```
+
+<div dir="rtl">
+
+أو بإيدك:
+
 1. نزّل **`Taswib-win-Setup.exe`** من صفحة [الإصدارات](../../releases/latest) وشغّله.
 2. هيظهر البرنامج في الـ tray (تحت على اليمين جنب الساعة).
 3. دوس مرتين على الأيقونة ← **Settings** ← فعّل **Start with Windows**.
