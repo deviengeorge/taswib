@@ -6,7 +6,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
-    <Version>0.3.0</Version>
+    <Version>0.3.1</Version>
     <ApplicationIcon>taswib.ico</ApplicationIcon>
     <AssemblyName>Taswib</AssemblyName>
     <ApplicationManifest>app.manifest</ApplicationManifest>

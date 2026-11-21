@@ -27,11 +27,18 @@ jobs:
           -o out
       - uses: actions/upload-artifact@v4
         with: { name: Taswib.exe, path: out/Taswib.exe }
+      - name: Publish folder for installer (diffs well, so updates are small deltas)
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: >
+          dotnet publish src/Taswib -c Release -r win-x64 --self-contained
+          -p:DebugType=none -p:Version=${{ env.VER }} -o pub
       - name: Installer (Velopack)
         if: startsWith(github.ref, 'refs/tags/v')
+        shell: bash
         run: |
           dotnet tool install -g vpk --version 1.2.161
-          vpk pack -u Taswib -v ${{ env.VER }} -p out -e Taswib.exe -i src/Taswib/taswib.ico
+          vpk download github --repoUrl https://github.com/${{ github.repository }} --token ${{ github.token }} || echo "no previous release, full package only"
+          vpk pack -u Taswib -v ${{ env.VER }} -p pub -e Taswib.exe -i src/Taswib/taswib.ico
       - name: Release
         if: startsWith(github.ref, 'refs/tags/v')
         shell: bash
