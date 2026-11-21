@@ -37,17 +37,22 @@ public static class Mapper
 
     public static bool IsArabic(char c) => c >= '؀' && c <= 'ۿ';
 
-    /// <summary>Converts text typed on the wrong layout. Direction is picked by which script dominates.</summary>
-    public static string Convert(string text, Direction mode = Direction.Auto)
+    /// <summary>Which way a conversion will go: forced by mode, else by which script dominates.</summary>
+    public static Direction Resolve(string text, Direction mode = Direction.Auto)
     {
+        if (mode != Direction.Auto) return mode;
         var ar = text.Count(IsArabic);
         var lat = text.Count(c => c < 128 && char.IsLetter(c));
-        if (mode == Direction.ToArabic) { ar = 0; lat = 1; }
-        else if (mode == Direction.ToEnglish) { ar = 1; lat = 0; }
+        return ar > lat ? Direction.ToEnglish : Direction.ToArabic;
+    }
+
+    public static string Convert(string text, Direction mode = Direction.Auto)
+    {
+        var toEn = Resolve(text, mode) == Direction.ToEnglish;
         var sb = new StringBuilder(text.Length);
         foreach (var c in text)
         {
-            if (ar > lat) sb.Append(ToEn.TryGetValue(c, out var e) ? e : c);
+            if (toEn) sb.Append(ToEn.TryGetValue(c, out var e) ? e : c);
             else sb.Append(ToAr.TryGetValue(c, out var a) ? a : c);
         }
         return sb.ToString();

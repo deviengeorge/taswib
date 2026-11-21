@@ -4,6 +4,8 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using Microsoft.Win32;
 using Taswib.Core;
+using Velopack;
+using Velopack.Sources;
 
 namespace Taswib;
 
@@ -15,6 +17,7 @@ static class Program
     [STAThread]
     static void Main()
     {
+        VelopackApp.Build().Run(); // handles installer/update hooks, must be first
         using var mutex = new Mutex(true, "Taswib.SingleInstance", out var first);
         if (!first) return;
         ApplicationConfiguration.Initialize();
@@ -23,7 +26,7 @@ static class Program
 
     sealed class TrayContext : ApplicationContext
     {
-        readonly NotifyIcon tray = new() { Icon = SystemIcons.Application, Visible = true, Text = "Taswib" };
+        readonly NotifyIcon tray = new() { Icon = Icon.ExtractAssociatedIcon(Environment.ProcessPath!), Visible = true, Text = "Taswib" };
         readonly HotkeyWindow win;
 
         public TrayContext()
@@ -39,6 +42,7 @@ static class Program
             tray.DoubleClick += (_, _) => ShowSettings();
             win = new HotkeyWindow(async () => await Fixer.Run());
             ApplyHotkey();
+            _ = CheckUpdate(silent: true);
         }
 
         void ApplyHotkey()
@@ -73,19 +77,30 @@ static class Program
             else k.DeleteValue("Taswib", false);
         }
 
-        async Task CheckUpdate()
+        // Installed (Setup.exe): download + restart into the new version. Portable exe: just open the release page.
+        async Task CheckUpdate(bool silent = false)
         {
             try
             {
+                var mgr = new UpdateManager(new GithubSource($"https://github.com/{Repo}", null, false));
+                if (mgr.IsInstalled)
+                {
+                    var info = await mgr.CheckForUpdatesAsync();
+                    if (info == null) { if (!silent) tray.ShowBalloonTip(3000, "Taswib", "You are up to date.", ToolTipIcon.Info); return; }
+                    tray.ShowBalloonTip(3000, "Taswib", $"Updating to {info.TargetFullRelease.Version}…", ToolTipIcon.Info);
+                    await mgr.DownloadUpdatesAsync(info);
+                    mgr.ApplyUpdatesAndRestart(info);
+                    return;
+                }
                 using var http = new HttpClient();
                 http.DefaultRequestHeaders.UserAgent.ParseAdd("Taswib");
                 var rel = await http.GetFromJsonAsync<Release>($"https://api.github.com/repos/{Repo}/releases/latest");
                 var latest = Version.Parse(rel!.tag_name.TrimStart('v'));
                 var mine = Assembly.GetExecutingAssembly().GetName().Version!;
-                if (latest > mine) Process.Start(new ProcessStartInfo(rel.html_url) { UseShellExecute = true });
-                else tray.ShowBalloonTip(3000, "Taswib", "You are up to date.", ToolTipIcon.Info);
+                if (latest > new Version(mine.Major, mine.Minor, mine.Build)) Process.Start(new ProcessStartInfo(rel.html_url) { UseShellExecute = true });
+                else if (!silent) tray.ShowBalloonTip(3000, "Taswib", "You are up to date.", ToolTipIcon.Info);
             }
-            catch { tray.ShowBalloonTip(3000, "Taswib", "Update check failed (offline?).", ToolTipIcon.Warning); }
+            catch { if (!silent) tray.ShowBalloonTip(3000, "Taswib", "Update check failed (offline?).", ToolTipIcon.Warning); }
         }
 
         record Release(string tag_name, string html_url);
@@ -131,15 +146,30 @@ static class Program
                 }
                 if (sel != null)
                 {
-                    Clipboard.SetText(Mapper.Convert(sel, cfg.Direction));
+                    var dir = Mapper.Resolve(sel, cfg.Direction);
+                    Clipboard.SetText(Mapper.Convert(sel, dir));
                     Press(Keys.ControlKey, Keys.V);
                     await Task.Delay(200);
+                    if (cfg.SwitchLayout) SwitchTo(dir == Direction.ToArabic ? 0x01 : 0x09);
                 }
                 if (cfg.RestoreClipboard) { if (saved != null) Clipboard.SetText(saved); else Clipboard.Clear(); }
             }
             catch { /* clipboard locked by another app; user just presses again */ }
             finally { busy = false; }
         }
+
+        // Ask the focused window to use an installed layout whose primary language is `lang` (0x01 Arabic, 0x09 English).
+        static void SwitchTo(int lang)
+        {
+            var n = GetKeyboardLayoutList(0, null);
+            var list = new nint[n];
+            GetKeyboardLayoutList(n, list);
+            var hkl = list.FirstOrDefault(h => ((int)h & 0x3FF) == lang);
+            if (hkl != 0) PostMessage(GetForegroundWindow(), 0x0050, 0, hkl); // WM_INPUTLANGCHANGEREQUEST
+        }
+        [DllImport("user32.dll")] static extern int GetKeyboardLayoutList(int n, nint[]? list);
+        [DllImport("user32.dll")] static extern nint GetForegroundWindow();
+        [DllImport("user32.dll")] static extern bool PostMessage(nint h, uint msg, nint w, nint l);
 
         static string? GetText() => Clipboard.ContainsText() ? Clipboard.GetText() : null;
 

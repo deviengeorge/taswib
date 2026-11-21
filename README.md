@@ -8,11 +8,11 @@ Typed Arabic with the English layout on? Press **Pause** and the text fixes itse
 
 ## Install
 
-1. Download `Taswib.exe` from [Releases](../../releases/latest).
-2. Run it. It sits in the tray. No installer, no admin.
+1. Download `Taswib-win-Setup.exe` from [Releases](../../releases/latest) and run it. No admin needed.
+2. It lives in the tray and updates itself.
 3. Double-click the tray icon → **Settings** → tick **Start with Windows** if you want it always on.
 
-Windows 10/11 x64. Fully offline, nothing is sent anywhere.
+Prefer no install? `Taswib.exe` (portable) is in the same release. Windows 10/11 x64. Fully offline except the update check.
 
 ## Use
 
@@ -28,13 +28,14 @@ Tray icon double-click, or tray menu → **Settings…**
 1. **Shortcut**: click the box, press any combo (default `Pause`).
 2. **What to fix**: selection only / selection else line before cursor / selection else whole text box.
 3. **Direction**: auto-detect, or force EN→AR or AR→EN.
-4. **Enabled**, **Start with Windows**, **Restore clipboard**.
+4. **Switch keyboard layout after fixing**: you keep typing in the right language.
+5. **Enabled**, **Start with Windows**, **Restore clipboard**.
 
 Saved in `%APPDATA%\Taswib\settings.json`.
 
 ## Update
 
-Tray menu → **Check for updates** opens the latest release page.
+Installed version: checks on start and updates itself. Tray menu → **Check for updates** forces it. Portable exe: opens the release page.
 
 ## Build
 
@@ -47,4 +48,4 @@ Releases are built by GitHub Actions: push a tag `v0.1.0` and `Taswib.exe` is at
 
 ## Not yet
 
-Auto-fix while typing, auto-switch layout after fixing.
+Auto-fix while typing, per-app blocklist, Persian layout.

@@ -9,6 +9,7 @@ sealed class SettingsForm : Form
     readonly ComboBox direction = Combo(("Auto-detect", Direction.Auto), ("Always English → Arabic", Direction.ToArabic), ("Always Arabic → English", Direction.ToEnglish));
     readonly CheckBox enabled = new() { Text = "Enabled", AutoSize = true };
     readonly CheckBox startup = new() { Text = "Start with Windows", AutoSize = true };
+    readonly CheckBox switchLayout = new() { Text = "Switch keyboard layout after fixing", AutoSize = true };
     readonly CheckBox restore = new() { Text = "Restore clipboard after fixing", AutoSize = true };
     string pending;
 
@@ -20,7 +21,7 @@ sealed class SettingsForm : Form
         Padding = new Padding(12);
 
         pending = s.Hotkey; hotkey.Text = pending;
-        enabled.Checked = s.Enabled; startup.Checked = startupOn; restore.Checked = s.RestoreClipboard;
+        enabled.Checked = s.Enabled; startup.Checked = startupOn; restore.Checked = s.RestoreClipboard; switchLayout.Checked = s.SwitchLayout;
         Select(scope, s.Scope); Select(direction, s.Direction);
 
         hotkey.KeyDown += (_, e) =>
@@ -34,7 +35,7 @@ sealed class SettingsForm : Form
         var ok = new Button { Text = "Save", DialogResult = DialogResult.OK, AutoSize = true };
         ok.Click += (_, _) =>
         {
-            s.Enabled = enabled.Checked; s.Hotkey = pending; s.RestoreClipboard = restore.Checked;
+            s.Enabled = enabled.Checked; s.Hotkey = pending; s.RestoreClipboard = restore.Checked; s.SwitchLayout = switchLayout.Checked;
             s.Scope = (Scope)((Item)scope.SelectedItem!).Value; s.Direction = (Direction)((Item)direction.SelectedItem!).Value;
             apply(s, startup.Checked);
         };
@@ -48,6 +49,7 @@ sealed class SettingsForm : Form
         Row("Direction", direction);
         t.Controls.Add(enabled); t.SetColumnSpan(enabled, 2);
         t.Controls.Add(startup); t.SetColumnSpan(startup, 2);
+        t.Controls.Add(switchLayout); t.SetColumnSpan(switchLayout, 2);
         t.Controls.Add(restore); t.SetColumnSpan(restore, 2);
         var buttons = new FlowLayoutPanel { AutoSize = true, FlowDirection = FlowDirection.RightToLeft, Dock = DockStyle.Right };
         buttons.Controls.Add(cancel); buttons.Controls.Add(ok);

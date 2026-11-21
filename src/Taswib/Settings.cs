@@ -13,6 +13,7 @@ public sealed class Settings
     public Scope Scope { get; set; } = Scope.SelectionOrLine;
     public Direction Direction { get; set; } = Direction.Auto;
     public bool RestoreClipboard { get; set; } = true;
+    public bool SwitchLayout { get; set; } = true;
 
     public static Settings Current { get; private set; } = Load();
 
