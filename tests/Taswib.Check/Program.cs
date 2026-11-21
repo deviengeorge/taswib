@@ -10,4 +10,8 @@ Eq(Mapper.Convert("اهلا", Direction.ToArabic), "اهلا");               //
 Eq(Mapper.Convert("high", Direction.ToEnglish), "high");
 Eq(Mapper.Resolve("high").ToString(), "ToArabic");
 Eq(Mapper.Resolve("اهلا").ToString(), "ToEnglish");
+Eq(TextTools.FixPunctuation("ماذا? نعم, ok; hi,"), "ماذا؟ نعم، ok; hi,");   // only after Arabic
+Eq(TextTools.FixPunctuation("لا ; نعم"), "لا ؛ نعم");                     // space before is skipped
+Eq(TextTools.Normalize("أحمد إبراهيم آمنة على"), "احمد ابراهيم امنة علي");
+Eq(TextTools.Normalize("مُحَمَّد كــلام"), "محمد كلام");                  // tashkeel + tatweel removed
 Console.WriteLine("ok");

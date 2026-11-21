@@ -4,6 +4,7 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using Microsoft.Win32;
 using Taswib.Core;
+using static Taswib.Strings;
 using Velopack;
 using Velopack.Sources;
 
@@ -32,27 +33,40 @@ static class Program
         public TrayContext()
         {
             tray.ContextMenuStrip = new ContextMenuStrip();
-            tray.ContextMenuStrip.Items.AddRange(new ToolStripItem[]
-            {
-                new ToolStripMenuItem("Fix text now", null, async (_, _) => await Fixer.Run()),
-                new ToolStripMenuItem("Settings…", null, (_, _) => ShowSettings()),
-                new ToolStripMenuItem("Check for updates", null, async (_, _) => await CheckUpdate()),
-                new ToolStripMenuItem("Exit", null, (_, _) => { tray.Visible = false; Application.Exit(); }),
-            });
             tray.DoubleClick += (_, _) => ShowSettings();
-            win = new HotkeyWindow(async () => await Fixer.Run());
+            win = new HotkeyWindow(async id => await Fixer.Run(id == 1 ? Mode.Fix : Mode.Clean));
             ApplyHotkey();
             _ = CheckUpdate(silent: true);
+        }
+
+        void BuildMenu()
+        {
+            var m = tray.ContextMenuStrip!;
+            m.Items.Clear();
+            m.RightToLeft = Arabic ? RightToLeft.Yes : RightToLeft.No;
+            m.Items.AddRange(new ToolStripItem[]
+            {
+                new ToolStripMenuItem(T("fixnow"), null, async (_, _) => await Fixer.Run(Mode.Fix)),
+                new ToolStripMenuItem(T("cleannow"), null, async (_, _) => await Fixer.Run(Mode.Clean)),
+                new ToolStripMenuItem(T("settings"), null, (_, _) => ShowSettings()),
+                new ToolStripMenuItem(T("update"), null, async (_, _) => await CheckUpdate()),
+                new ToolStripMenuItem(T("exit"), null, (_, _) => { tray.Visible = false; Application.Exit(); }),
+            });
         }
 
         void ApplyHotkey()
         {
             var s = Settings.Current;
+            BuildMenu();
             win.Unregister();
-            tray.Text = $"Taswib — {(s.Enabled ? s.Hotkey : "disabled")}";
+            tray.Text = $"Taswib — {(s.Enabled ? s.Hotkey : T("disabled"))}";
             if (!s.Enabled) return;
-            if (!Settings.TryParseHotkey(s.Hotkey, out var mod, out var key) || !win.Register(mod, key))
-                tray.ShowBalloonTip(4000, "Taswib", $"Shortcut {s.Hotkey} is taken. Pick another in Settings.", ToolTipIcon.Warning);
+            foreach (var (id, hk) in new[] { (1, s.Hotkey), (2, s.CleanHotkey) })
+            {
+                if (string.IsNullOrWhiteSpace(hk)) continue;
+                if (!Settings.TryParseHotkey(hk, out var mod, out var key) || !win.Register(id, mod, key))
+                    tray.ShowBalloonTip(4000, "Taswib", T("taken", hk), ToolTipIcon.Warning);
+            }
         }
 
         void ShowSettings()
@@ -86,8 +100,8 @@ static class Program
                 if (mgr.IsInstalled)
                 {
                     var info = await mgr.CheckForUpdatesAsync();
-                    if (info == null) { if (!silent) tray.ShowBalloonTip(3000, "Taswib", "You are up to date.", ToolTipIcon.Info); return; }
-                    tray.ShowBalloonTip(3000, "Taswib", $"Updating to {info.TargetFullRelease.Version}…", ToolTipIcon.Info);
+                    if (info == null) { if (!silent) tray.ShowBalloonTip(3000, "Taswib", T("uptodate"), ToolTipIcon.Info); return; }
+                    tray.ShowBalloonTip(3000, "Taswib", T("updating", info.TargetFullRelease.Version), ToolTipIcon.Info);
                     await mgr.DownloadUpdatesAsync(info);
                     mgr.ApplyUpdatesAndRestart(info);
                     return;
@@ -98,9 +112,9 @@ static class Program
                 var latest = Version.Parse(rel!.tag_name.TrimStart('v'));
                 var mine = Assembly.GetExecutingAssembly().GetName().Version!;
                 if (latest > new Version(mine.Major, mine.Minor, mine.Build)) Process.Start(new ProcessStartInfo(rel.html_url) { UseShellExecute = true });
-                else if (!silent) tray.ShowBalloonTip(3000, "Taswib", "You are up to date.", ToolTipIcon.Info);
+                else if (!silent) tray.ShowBalloonTip(3000, "Taswib", T("uptodate"), ToolTipIcon.Info);
             }
-            catch { if (!silent) tray.ShowBalloonTip(3000, "Taswib", "Update check failed (offline?).", ToolTipIcon.Warning); }
+            catch { if (!silent) tray.ShowBalloonTip(3000, "Taswib", T("updfail"), ToolTipIcon.Warning); }
         }
 
         record Release(string tag_name, string html_url);
@@ -108,24 +122,26 @@ static class Program
 
     sealed class HotkeyWindow : NativeWindow
     {
-        readonly Func<Task> onPress;
-        public HotkeyWindow(Func<Task> onPress) { this.onPress = onPress; CreateHandle(new CreateParams()); }
-        public bool Register(uint mod, Keys k) => RegisterHotKey(Handle, 1, mod | 0x4000, (uint)k); // 0x4000 = no auto-repeat
-        public void Unregister() => UnregisterHotKey(Handle, 1);
+        readonly Func<int, Task> onPress;
+        public HotkeyWindow(Func<int, Task> onPress) { this.onPress = onPress; CreateHandle(new CreateParams()); }
+        public bool Register(int id, uint mod, Keys k) => RegisterHotKey(Handle, id, mod | 0x4000, (uint)k); // 0x4000 = no auto-repeat
+        public void Unregister() { UnregisterHotKey(Handle, 1); UnregisterHotKey(Handle, 2); }
         protected override void WndProc(ref Message m)
         {
-            if (m.Msg == 0x0312) _ = onPress(); // WM_HOTKEY
+            if (m.Msg == 0x0312) _ = onPress((int)m.WParam); // WM_HOTKEY, WParam = id
             else base.WndProc(ref m);
         }
         [DllImport("user32.dll")] static extern bool RegisterHotKey(nint h, int id, uint mod, uint vk);
         [DllImport("user32.dll")] static extern bool UnregisterHotKey(nint h, int id);
     }
 
+    enum Mode { Fix, Clean }
+
     static class Fixer
     {
         static bool busy;
 
-        public static async Task Run()
+        public static async Task Run(Mode mode)
         {
             if (busy) return;
             busy = true;
@@ -147,10 +163,17 @@ static class Program
                 if (sel != null)
                 {
                     var dir = Mapper.Resolve(sel, cfg.Direction);
-                    Clipboard.SetText(Mapper.Convert(sel, dir));
+                    var result = sel;
+                    if (mode == Mode.Fix) result = Mapper.Convert(sel, dir);
+                    else
+                    {
+                        if (cfg.CleanPunctuation) result = TextTools.FixPunctuation(result);
+                        if (cfg.CleanNormalize) result = TextTools.Normalize(result);
+                    }
+                    Clipboard.SetText(result);
                     Press(Keys.ControlKey, Keys.V);
                     await Task.Delay(200);
-                    if (cfg.SwitchLayout) SwitchTo(dir == Direction.ToArabic ? 0x01 : 0x09);
+                    if (mode == Mode.Fix && cfg.SwitchLayout) SwitchTo(dir == Direction.ToArabic ? 0x01 : 0x09);
                 }
                 if (cfg.RestoreClipboard) { if (saved != null) Clipboard.SetText(saved); else Clipboard.Clear(); }
             }

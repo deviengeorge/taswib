@@ -29,9 +29,11 @@ Press **Pause**. You get `اهلا بيك كيف حالك`.
 3. **Switches your keyboard layout** after fixing, so you keep typing in the right language.
 4. **Any app**: Notepad, Word, Chrome, Telegram, WhatsApp, VS Code (anything that supports copy/paste).
 5. **Your shortcut**: record any key combo, choose what gets fixed (selection, line, whole box).
-6. **Installer + auto-update**: one `Setup.exe`, no admin rights, updates itself.
-7. **Private**: fully offline, no telemetry. Update check only contacts GitHub.
-8. **Free and open source** (MIT).
+6. **Clean Arabic text** (second shortcut, `Shift+Pause`): `, ? ;` become `، ؟ ؛`, and `أ إ آ` → `ا`, `ى` → `ي`, tashkeel removed. Handy for names in CRMs and forms.
+7. **Arabic interface (Egyptian)**: switch Settings and the tray menu to Egyptian Arabic.
+8. **Installer + auto-update**: one `Setup.exe`, no admin rights, updates itself.
+9. **Private**: fully offline, no telemetry. Update check only contacts GitHub.
+10. **Free and open source** (MIT).
 
 ## Install
 
@@ -69,6 +71,8 @@ Prefer no install? Grab the portable **`Taswib.exe`** from the same page.
 | Shortcut | Click the box, press any combo, e.g. `Ctrl+Shift+Space` |
 | What to fix | Selection only · selection else line before cursor · selection else whole text box |
 | Direction | Auto-detect, or force English→Arabic / Arabic→English |
+| Clean shortcut | Second hotkey that cleans punctuation and letters (`Shift+Pause`) |
+| Language | English or Egyptian Arabic interface |
 | Switch keyboard layout | Jump to Arabic/English after fixing |
 | Restore clipboard | Put back what you had copied |
 
@@ -95,7 +99,7 @@ Pushing a tag like `v0.4.0` makes GitHub Actions build the installer and publish
 
 ## Roadmap
 
-Auto-fix while typing · per-app blocklist · Persian layout · Arabic app UI.
+Auto-fix while typing · per-app blocklist · Persian layout · Franco-Arabic (`ezayak` → `ازيك`).
 
 ## License
 

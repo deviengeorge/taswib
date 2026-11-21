@@ -14,6 +14,10 @@ public sealed class Settings
     public Direction Direction { get; set; } = Direction.Auto;
     public bool RestoreClipboard { get; set; } = true;
     public bool SwitchLayout { get; set; } = true;
+    public string CleanHotkey { get; set; } = "Shift+Pause";
+    public bool CleanPunctuation { get; set; } = true;
+    public bool CleanNormalize { get; set; } = true;
+    public string Language { get; set; } = System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "ar" ? "ar" : "en";
 
     public static Settings Current { get; private set; } = Load();
 
