@@ -7,6 +7,7 @@ using Taswib.Core;
 using static Taswib.Strings;
 using Velopack;
 using Velopack.Sources;
+using WinClip = Windows.ApplicationModel.DataTransfer.Clipboard;
 
 namespace Taswib;
 
@@ -73,12 +74,14 @@ static class Program
         {
             if (settingsOpen) return;
             settingsOpen = true;
+            win.Unregister(); // else the global hotkey swallows the key you are trying to record
             using var f = new SettingsForm(Settings.Current, IsStartup(), (s, startup) =>
             {
                 s.Save(); SetStartup(startup); ApplyHotkey();
             });
             f.ShowDialog();
             settingsOpen = false;
+            ApplyHotkey();
         }
         bool settingsOpen;
 
@@ -149,6 +152,7 @@ static class Program
             {
                 var cfg = Settings.Current;
                 await ReleaseModifiers();
+                var before = await HistoryIds();
                 var saved = GetText();
                 Clipboard.Clear();
                 Press(Keys.ControlKey, Keys.C);
@@ -170,12 +174,14 @@ static class Program
                         if (cfg.CleanPunctuation) result = TextTools.FixPunctuation(result);
                         if (cfg.CleanNormalize) result = TextTools.Normalize(result);
                     }
-                    Clipboard.SetText(result);
+                    SetPrivate(result);
                     Press(Keys.ControlKey, Keys.V);
                     await Task.Delay(200);
                     if (mode == Mode.Fix && cfg.SwitchLayout) SwitchTo(dir == Direction.ToArabic ? 0x01 : 0x09);
                 }
-                if (cfg.RestoreClipboard) { if (saved != null) Clipboard.SetText(saved); else Clipboard.Clear(); }
+                if (cfg.RestoreClipboard) { if (saved != null) SetPrivate(saved); else Clipboard.Clear(); }
+                await Task.Delay(400); // history entries appear a moment after the copy
+                await PurgeHistory(before);
             }
             catch { /* clipboard locked by another app; user just presses again */ }
             finally { busy = false; }
@@ -193,6 +199,39 @@ static class Program
         [DllImport("user32.dll")] static extern int GetKeyboardLayoutList(int n, nint[]? list);
         [DllImport("user32.dll")] static extern nint GetForegroundWindow();
         [DllImport("user32.dll")] static extern bool PostMessage(nint h, uint msg, nint w, nint l);
+
+        // Our own clipboard writes are hidden from Win+V history and cloud sync.
+        static void SetPrivate(string text)
+        {
+            var d = new DataObject();
+            d.SetText(text);
+            foreach (var f in new[] { "ExcludeClipboardContentFromMonitorProcessing", "CanIncludeInClipboardHistory", "CanUploadToCloudClipboard" })
+                d.SetData(f, new MemoryStream(new byte[4]));
+            Clipboard.SetDataObject(d, true);
+        }
+
+        // The app's own Ctrl+C lands in Win+V history; remove whatever appeared during our run.
+        static async Task<HashSet<string>?> HistoryIds()
+        {
+            try
+            {
+                if (!WinClip.IsHistoryEnabled()) return null;
+                var r = await WinClip.GetHistoryItemsAsync();
+                return r.Status == Windows.ApplicationModel.DataTransfer.ClipboardHistoryItemsResultStatus.Success ? r.Items.Select(i => i.Id).ToHashSet() : null;
+            }
+            catch { return null; }
+        }
+
+        static async Task PurgeHistory(HashSet<string>? before)
+        {
+            if (before == null) return;
+            try
+            {
+                var r = await WinClip.GetHistoryItemsAsync();
+                foreach (var i in r.Items.Where(i => !before.Contains(i.Id))) WinClip.DeleteItemFromHistory(i);
+            }
+            catch { /* best effort */ }
+        }
 
         static string? GetText() => Clipboard.ContainsText() ? Clipboard.GetText() : null;
 
