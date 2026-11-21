@@ -112,6 +112,7 @@ sealed class SettingsForm : Form
         yield return new Card(T("direction"), T("direction_d"), Seg(new[] { T("dirS0"), "EN→AR", "AR→EN" }, (int)s.Direction, i => { s.Direction = (Direction)i; Save(); }));
         yield return new Card(T("switch"), T("switch_d"), Tog(s.SwitchLayout, v => { s.SwitchLayout = v; Save(); }));
         yield return new Card(T("restore"), T("restore_d"), Tog(s.RestoreClipboard, v => { s.RestoreClipboard = v; Save(); }));
+        yield return new Card(T("sound"), T("sound_d"), Tog(s.SoundOnFix, v => { s.SoundOnFix = v; Save(); }));
     }
 
     IEnumerable<Control> Cleaning()
@@ -140,10 +141,24 @@ sealed class SettingsForm : Form
         yield return new Card($"Taswib {ver.Major}.{ver.Minor}.{ver.Build}", T("about_d"), Btn(T("update"), () => checkUpdate()));
         yield return new Card(T("github"), "github.com/deviengeorge/taswib", Btn(T("open"), () =>
             Process.Start(new ProcessStartInfo("https://github.com/deviengeorge/taswib") { UseShellExecute = true })));
+        var copy = Btn(T("btn_copy"), () => { });
+        copy.Click += async (_, _) =>
+        {
+            Clipboard.SetText(Log.Report());
+            var old = copy.Text; copy.Text = T("copied");
+            await Task.Delay(1500);
+            if (!copy.IsDisposed) copy.Text = old;
+        };
+        var logs = Btn(T("btn_log"), () => { Directory.CreateDirectory(Log.Dir); Process.Start(new ProcessStartInfo(Log.Dir) { UseShellExecute = true }); });
+        var both = new Panel { Size = new Size(copy.Width + 10 + logs.Width, 36) };
+        copy.Location = new Point(Arabic ? logs.Width + 10 : 0, 0);
+        logs.Location = new Point(Arabic ? 0 : copy.Width + 10, 0);
+        both.Controls.Add(copy); both.Controls.Add(logs);
+        yield return new Card(T("diag"), T("diag_d"), both);
         yield return new Card(T("license"), "MIT", null);
     }
 
-    static Button Btn(string text, Action click)
+    internal static Button Btn(string text, Action click)
     {
         var b = new Button
         {

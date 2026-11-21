@@ -23,6 +23,10 @@ static class Program
         using var mutex = new Mutex(true, "Taswib.SingleInstance", out var first);
         if (!first) return;
         ApplicationConfiguration.Initialize();
+        Application.ThreadException += (_, e) => Log.Write("ui exception", e.Exception);
+        AppDomain.CurrentDomain.UnhandledException += (_, e) => Log.Write("fatal", (Exception)e.ExceptionObject);
+        var v = Assembly.GetExecutingAssembly().GetName().Version!;
+        Log.Write($"start {v.Major}.{v.Minor}.{v.Build} | {System.Runtime.InteropServices.RuntimeInformation.OSDescription}");
         Application.Run(new TrayContext());
     }
 
@@ -35,9 +39,35 @@ static class Program
         {
             tray.ContextMenuStrip = new ContextMenuStrip();
             tray.DoubleClick += (_, _) => ShowSettings();
-            win = new HotkeyWindow(async id => await Fixer.Run(id == 1 ? Mode.Fix : Mode.Clean));
+            win = new HotkeyWindow(async id => await RunFix(id == 1 ? Mode.Fix : Mode.Clean));
             ApplyHotkey();
             _ = CheckUpdate(silent: true);
+            if (Settings.FirstRun) // show the welcome once the message loop is running
+            {
+                var t = new System.Windows.Forms.Timer { Interval = 800 };
+                t.Tick += (_, _) => { t.Stop(); t.Dispose(); ShowWelcome(); };
+                t.Start();
+            }
+        }
+
+        void ShowWelcome()
+        {
+            Settings.Current.Save(); // creates settings.json, so the welcome never shows again
+            using var w = new WelcomeForm(Settings.Current.Hotkey);
+            w.ShowDialog();
+            if (w.OpenSettings) ShowSettings();
+        }
+
+        async Task RunFix(Mode mode)
+        {
+            var r = await Fixer.Run(mode);
+            switch (r)
+            {
+                case Result.Fixed: if (Settings.Current.SoundOnFix) System.Media.SystemSounds.Asterisk.Play(); break;
+                case Result.NothingSelected: tray.ShowBalloonTip(3500, "Taswib", T("n_nosel"), ToolTipIcon.Info); break;
+                case Result.NoChange: tray.ShowBalloonTip(2500, "Taswib", T("n_nochange"), ToolTipIcon.Info); break;
+                case Result.Failed: tray.ShowBalloonTip(3000, "Taswib", T("n_failed"), ToolTipIcon.Warning); break;
+            }
         }
 
         void BuildMenu()
@@ -47,8 +77,8 @@ static class Program
             m.RightToLeft = Arabic ? RightToLeft.Yes : RightToLeft.No;
             m.Items.AddRange(new ToolStripItem[]
             {
-                new ToolStripMenuItem(T("fixnow"), null, async (_, _) => await Fixer.Run(Mode.Fix)),
-                new ToolStripMenuItem(T("cleannow"), null, async (_, _) => await Fixer.Run(Mode.Clean)),
+                new ToolStripMenuItem(T("fixnow"), null, async (_, _) => await RunFix(Mode.Fix)),
+                new ToolStripMenuItem(T("cleannow"), null, async (_, _) => await RunFix(Mode.Clean)),
                 new ToolStripMenuItem(T("settings"), null, (_, _) => ShowSettings()),
                 new ToolStripMenuItem(T("update"), null, async (_, _) => await CheckUpdate()),
                 new ToolStripMenuItem(T("exit"), null, (_, _) => { tray.Visible = false; Application.Exit(); }),
@@ -66,7 +96,7 @@ static class Program
             {
                 if (string.IsNullOrWhiteSpace(hk)) continue;
                 if (!Settings.TryParseHotkey(hk, out var mod, out var key) || !win.Register(id, mod, key))
-                    tray.ShowBalloonTip(4000, "Taswib", T("taken", hk), ToolTipIcon.Warning);
+                { Log.Write($"hotkey {hk} not registered"); tray.ShowBalloonTip(4000, "Taswib", T("taken", hk), ToolTipIcon.Warning); }
             }
         }
 
@@ -119,7 +149,7 @@ static class Program
                 if (latest > new Version(mine.Major, mine.Minor, mine.Build)) Process.Start(new ProcessStartInfo(rel.html_url) { UseShellExecute = true });
                 else if (!silent) tray.ShowBalloonTip(3000, "Taswib", T("uptodate"), ToolTipIcon.Info);
             }
-            catch { if (!silent) tray.ShowBalloonTip(3000, "Taswib", T("updfail"), ToolTipIcon.Warning); }
+            catch (Exception e) { Log.Write("update check failed", e); if (!silent) tray.ShowBalloonTip(3000, "Taswib", T("updfail"), ToolTipIcon.Warning); }
         }
 
         record Release(string tag_name, string html_url);
@@ -141,15 +171,17 @@ static class Program
     }
 
     enum Mode { Fix, Clean }
+    enum Result { Fixed, NothingSelected, NoChange, Failed, Busy }
 
     static class Fixer
     {
         static bool busy;
 
-        public static async Task Run(Mode mode)
+        public static async Task<Result> Run(Mode mode)
         {
-            if (busy) return;
+            if (busy) return Result.Busy;
             busy = true;
+            var result = Result.NothingSelected;
             try
             {
                 var cfg = Settings.Current;
@@ -169,24 +201,32 @@ static class Program
                 if (sel != null)
                 {
                     var dir = Mapper.Resolve(sel, cfg.Direction);
-                    var result = sel;
-                    if (mode == Mode.Fix) result = Mapper.Convert(sel, dir);
+                    var output = sel;
+                    if (mode == Mode.Fix) output = Mapper.Convert(sel, dir);
                     else
                     {
-                        if (cfg.CleanPunctuation) result = TextTools.FixPunctuation(result);
-                        if (cfg.CleanNormalize) result = TextTools.Normalize(result);
+                        if (cfg.CleanPunctuation) output = TextTools.FixPunctuation(output);
+                        if (cfg.CleanNormalize) output = TextTools.Normalize(output);
                     }
-                    SetPrivate(result);
-                    Press(Keys.ControlKey, Keys.V);
-                    await Task.Delay(200);
-                    if (mode == Mode.Fix && cfg.SwitchLayout) SwitchTo(dir == Direction.ToArabic ? 0x01 : 0x09);
+                    if (output == sel) result = Result.NoChange;
+                    else
+                    {
+                        SetPrivate(output);
+                        Press(Keys.ControlKey, Keys.V);
+                        await Task.Delay(200);
+                        if (mode == Mode.Fix && cfg.SwitchLayout) SwitchTo(dir == Direction.ToArabic ? 0x01 : 0x09);
+                        result = Result.Fixed;
+                    }
+                    Log.Write($"{mode} scope={cfg.Scope} dir={dir} len={sel.Length} -> {result}"); // never the text itself
                 }
+                else Log.Write($"{mode} scope={cfg.Scope}: nothing copied");
                 if (cfg.RestoreClipboard) { if (saved != null) SetPrivate(saved); else Clipboard.Clear(); }
                 await Task.Delay(400); // history entries appear a moment after the copy
                 await PurgeHistory(before);
             }
-            catch { /* clipboard locked by another app; user just presses again */ }
+            catch (Exception e) { Log.Write("fix failed", e); result = Result.Failed; } // e.g. clipboard locked by another app
             finally { busy = false; }
+            return result;
         }
 
         // Ask the focused window to use an installed layout whose primary language is `lang` (0x01 Arabic, 0x09 English).
@@ -221,7 +261,7 @@ static class Program
                 var r = await WinClip.GetHistoryItemsAsync();
                 return r.Status == Windows.ApplicationModel.DataTransfer.ClipboardHistoryItemsResultStatus.Success ? r.Items.Select(i => i.Id).ToHashSet() : null;
             }
-            catch { return null; }
+            catch (Exception e) { Log.Write("history read failed", e); return null; }
         }
 
         static async Task PurgeHistory(HashSet<string>? before)
@@ -232,7 +272,7 @@ static class Program
                 var r = await WinClip.GetHistoryItemsAsync();
                 foreach (var i in r.Items.Where(i => !before.Contains(i.Id))) WinClip.DeleteItemFromHistory(i);
             }
-            catch { /* best effort */ }
+            catch (Exception e) { Log.Write("history purge failed", e); }
         }
 
         static string? GetText() => Clipboard.ContainsText() ? Clipboard.GetText() : null;

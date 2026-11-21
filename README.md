@@ -74,10 +74,10 @@ Double-click the tray icon. Changes save instantly. Light and dark follow Window
 | --- | --- |
 | General | Enabled · Start with Windows · Language (English / Egyptian Arabic) |
 | Shortcuts | Fix shortcut (default `Insert`) · Clean shortcut (default `Shift+Pause`) |
-| Fixing | What to fix (selection / + line / + whole box) · Direction · Switch layout · Restore clipboard |
+| Fixing | What to fix (selection / + line / + whole box) · Direction · Switch layout · Restore clipboard · Sound |
 | Cleaning | Fix punctuation · Unify letters |
 | Contact | Photo, email, WhatsApp, LinkedIn |
-| About | Version · Check for updates · GitHub |
+| About | Version · Check for updates · GitHub · Diagnostics (copy debug info, open log) |
 
 Saved in `%APPDATA%\Taswib\settings.json`.
 
@@ -86,6 +86,8 @@ Saved in `%APPDATA%\Taswib\settings.json`.
 **Does it send my text anywhere?** No. Conversion is local. Only the update check contacts GitHub.
 
 **Which layouts?** US QWERTY ⇄ Arabic (101), the standard Windows Arabic layout.
+
+**Something is wrong. How do I report it?** Settings → About → **Copy debug info**, then paste it in an [issue](../../issues) or message. It holds versions, layouts and a short log, never the text you typed.
 
 **It does nothing in some window.** Windows blocks input into apps running as administrator. Run Taswib as administrator too, or use a normal window.
 

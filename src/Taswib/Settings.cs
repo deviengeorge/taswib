@@ -14,22 +14,29 @@ public sealed class Settings
     public Direction Direction { get; set; } = Direction.Auto;
     public bool RestoreClipboard { get; set; } = true;
     public bool SwitchLayout { get; set; } = true;
+    public bool SoundOnFix { get; set; } = true;
     public string CleanHotkey { get; set; } = "Shift+Pause";
     public bool CleanPunctuation { get; set; } = true;
     public bool CleanNormalize { get; set; } = true;
     public string Language { get; set; } = System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "ar" ? "ar" : "en";
 
-    public static Settings Current { get; private set; } = Load();
-
     static readonly string PathFile = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Taswib", "settings.json");
     static readonly JsonSerializerOptions Opt = new() { WriteIndented = true, Converters = { new JsonStringEnumConverter() } };
 
+    // Order matters: Current runs Load(), which needs PathFile and Opt already set.
+    public static bool FirstRun { get; } = !File.Exists(PathFile);
+    public static Settings Current { get; } = Load();
+
     static Settings Load()
     {
         try { return JsonSerializer.Deserialize<Settings>(File.ReadAllText(PathFile), Opt) ?? new(); }
-        catch { return new(); } // missing or corrupt file: defaults
+        catch (FileNotFoundException) { return new(); }
+        catch (DirectoryNotFoundException) { return new(); }
+        catch (Exception e) { Log.Write("settings unreadable, using defaults", e); return new(); }
     }
+
+    public string ToJson() => JsonSerializer.Serialize(this, Opt);
 
     public void Save()
     {
