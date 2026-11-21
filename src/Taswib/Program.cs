@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Net.Http.Json;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Drawing.Imaging;
 using Microsoft.Win32;
 using Taswib.Core;
 using static Taswib.Strings;
@@ -19,7 +20,9 @@ static class Program
     [STAThread]
     static void Main()
     {
-        VelopackApp.Build().Run(); // handles installer/update hooks, must be first
+        VelopackApp.Build()
+            .OnBeforeUninstallFastCallback(_ => RemoveStartup()) // no dead "Start with Windows" entry after uninstall
+            .Run(); // handles installer/update hooks, must be first
         using var mutex = new Mutex(true, "Taswib.SingleInstance", out var first);
         if (!first) return;
         ApplicationConfiguration.Initialize();
@@ -30,28 +33,63 @@ static class Program
         Application.Run(new TrayContext());
     }
 
+    static void RemoveStartup()
+    {
+        try { using var k = Registry.CurrentUser.OpenSubKey(RunKey, true); k?.DeleteValue("Taswib", false); } catch { }
+    }
+
     sealed class TrayContext : ApplicationContext
     {
-        readonly NotifyIcon tray = new() { Icon = Icon.ExtractAssociatedIcon(Environment.ProcessPath!), Visible = true, Text = "Taswib" };
+        readonly Icon normalIcon = Icon.ExtractAssociatedIcon(Environment.ProcessPath!)!;
+        readonly NotifyIcon tray = new() { Visible = true, Text = "Taswib" };
+        Icon? grayIcon;
+        string lastFix = "";
         readonly HotkeyWindow win;
 
         public TrayContext()
         {
+            tray.Icon = normalIcon;
             tray.ContextMenuStrip = new ContextMenuStrip();
             tray.DoubleClick += (_, _) => ShowSettings();
             win = new HotkeyWindow(async id => await RunFix(id == 1 ? Mode.Fix : Mode.Clean));
             ApplyHotkey();
             _ = CheckUpdate(silent: true);
-            if (Settings.FirstRun) // show the welcome once the message loop is running
+            var args = Environment.GetCommandLineArgs();
+            if (Array.IndexOf(args, "--settings") >= 0) // used by the CI screenshots; handy as a shortcut too
             {
-                var t = new System.Windows.Forms.Timer { Interval = 800 };
-                t.Tick += (_, _) => { t.Stop(); t.Dispose(); ShowWelcome(); };
-                t.Start();
+                var pi = Array.IndexOf(args, "--page");
+                if (pi >= 0 && pi + 1 < args.Length && int.TryParse(args[pi + 1], out var pg)) SettingsForm.LastPage = Math.Clamp(pg, 0, 5);
+                After(800, ShowSettings);
             }
+            else if (Settings.FirstRun) After(800, ShowWelcome); // once the message loop is running
+            else After(1500, ShowNews);
+        }
+
+        static void After(int ms, Action a)
+        {
+            var t = new System.Windows.Forms.Timer { Interval = ms };
+            t.Tick += (_, _) => { t.Stop(); t.Dispose(); a(); };
+            t.Start();
+        }
+
+        static Version Current { get { var v = Assembly.GetExecutingAssembly().GetName().Version!; return new Version(v.Major, v.Minor, v.Build); } }
+
+        // Only releases that bring a new feature have a WhatsNew entry; everything else stays silent.
+        void ShowNews()
+        {
+            var s = Settings.Current;
+            var cur = Current.ToString();
+            if (WhatsNew.Pending(Current, s.LastNewsVersion) is { } n)
+            {
+                using var f = new NewsForm(n.V, Arabic ? n.Ar : n.En);
+                f.ShowDialog();
+            }
+            if (s.LastNewsVersion != cur) { s.LastNewsVersion = cur; s.Save(); }
         }
 
         void ShowWelcome()
         {
+            Settings.Current.LastNewsVersion = Current.ToString(); // new installs skip old news
             Settings.Current.Save(); // creates settings.json, so the welcome never shows again
             using var w = new WelcomeForm(Settings.Current.Hotkey);
             w.ShowDialog();
@@ -63,7 +101,10 @@ static class Program
             var r = await Fixer.Run(mode);
             switch (r)
             {
-                case Result.Fixed: if (Settings.Current.SoundOnFix) System.Media.SystemSounds.Asterisk.Play(); break;
+                case Result.Fixed:
+                    if (Settings.Current.SoundOnFix) System.Media.SystemSounds.Asterisk.Play();
+                    lastFix = T("lastfix", Fixer.LastLen); SetTip();
+                    break;
                 case Result.NothingSelected: tray.ShowBalloonTip(3500, "Taswib", T("n_nosel"), ToolTipIcon.Info); break;
                 case Result.NoChange: tray.ShowBalloonTip(2500, "Taswib", T("n_nochange"), ToolTipIcon.Info); break;
                 case Result.Failed: tray.ShowBalloonTip(3000, "Taswib", T("n_failed"), ToolTipIcon.Warning); break;
@@ -85,12 +126,33 @@ static class Program
             });
         }
 
+        void SetTip()
+        {
+            var s = Settings.Current;
+            var text = $"Taswib — {(s.Enabled ? s.Hotkey : T("disabled"))}" + (lastFix == "" ? "" : $" · {lastFix}");
+            tray.Text = text.Length > 63 ? text[..63] : text; // NotifyIcon.Text throws above 63 characters
+        }
+
+        static Icon Gray(Icon icon)
+        {
+            using var src = icon.ToBitmap();
+            var dst = new Bitmap(src.Width, src.Height);
+            using (var g = Graphics.FromImage(dst))
+            using (var ia = new ImageAttributes())
+            {
+                ia.SetColorMatrix(new ColorMatrix(new[] { new[] { .3f, .3f, .3f, 0, 0 }, new[] { .59f, .59f, .59f, 0, 0 }, new[] { .11f, .11f, .11f, 0, 0 }, new[] { 0f, 0, 0, 1, 0 }, new[] { 0f, 0, 0, 0, 1 } }));
+                g.DrawImage(src, new Rectangle(0, 0, src.Width, src.Height), 0, 0, src.Width, src.Height, GraphicsUnit.Pixel, ia);
+            }
+            return Icon.FromHandle(dst.GetHicon());
+        }
+
         void ApplyHotkey()
         {
             var s = Settings.Current;
             BuildMenu();
             win.Unregister();
-            tray.Text = $"Taswib — {(s.Enabled ? s.Hotkey : T("disabled"))}";
+            tray.Icon = s.Enabled ? normalIcon : (grayIcon ??= Gray(normalIcon));
+            SetTip();
             if (!s.Enabled || settingsOpen) return; // hotkeys stay released while Settings is open
             foreach (var (id, hk) in new[] { (1, s.Hotkey), (2, s.CleanHotkey) })
             {
@@ -176,6 +238,7 @@ static class Program
     static class Fixer
     {
         static bool busy;
+        public static int LastLen;
 
         public static async Task<Result> Run(Mode mode)
         {
@@ -187,7 +250,7 @@ static class Program
                 var cfg = Settings.Current;
                 await ReleaseModifiers();
                 var before = await HistoryIds();
-                var saved = GetText();
+                var snap = Snapshot(); // every format, so images and files survive too
                 Clipboard.Clear();
                 Press(Keys.ControlKey, Keys.C);
                 var sel = await Wait();
@@ -215,12 +278,13 @@ static class Program
                         Press(Keys.ControlKey, Keys.V);
                         await Task.Delay(200);
                         if (mode == Mode.Fix && cfg.SwitchLayout) SwitchTo(dir == Direction.ToArabic ? 0x01 : 0x09);
+                        LastLen = sel.Length;
                         result = Result.Fixed;
                     }
                     Log.Write($"{mode} scope={cfg.Scope} dir={dir} len={sel.Length} -> {result}"); // never the text itself
                 }
                 else Log.Write($"{mode} scope={cfg.Scope}: nothing copied");
-                if (cfg.RestoreClipboard) { if (saved != null) SetPrivate(saved); else Clipboard.Clear(); }
+                if (cfg.RestoreClipboard) Restore(snap);
                 await Task.Delay(400); // history entries appear a moment after the copy
                 await PurgeHistory(before);
             }
@@ -241,6 +305,32 @@ static class Program
         [DllImport("user32.dll")] static extern int GetKeyboardLayoutList(int n, nint[]? list);
         [DllImport("user32.dll")] static extern nint GetForegroundWindow();
         [DllImport("user32.dll")] static extern bool PostMessage(nint h, uint msg, nint w, nint l);
+
+        static Dictionary<string, object>? Snapshot()
+        {
+            try
+            {
+                var d = Clipboard.GetDataObject();
+                if (d == null) return null;
+                var snap = new Dictionary<string, object>();
+                foreach (var f in d.GetFormats(false))
+                {
+                    try { if (d.GetData(f, false) is { } v) snap[f] = v; } catch { /* a format that can't be read is skipped */ }
+                }
+                return snap;
+            }
+            catch (Exception e) { Log.Write("clipboard snapshot failed", e); return null; }
+        }
+
+        static void Restore(Dictionary<string, object>? snap)
+        {
+            if (snap == null || snap.Count == 0) { Clipboard.Clear(); return; }
+            var d = new DataObject();
+            foreach (var (f, v) in snap) { try { d.SetData(f, false, v); } catch { } }
+            foreach (var f in new[] { "ExcludeClipboardContentFromMonitorProcessing", "CanIncludeInClipboardHistory", "CanUploadToCloudClipboard" })
+                d.SetData(f, new MemoryStream(new byte[4]));
+            Clipboard.SetDataObject(d, true);
+        }
 
         // Our own clipboard writes are hidden from Win+V history and cloud sync.
         static void SetPrivate(string text)

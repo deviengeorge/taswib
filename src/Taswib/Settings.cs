@@ -15,6 +15,7 @@ public sealed class Settings
     public bool RestoreClipboard { get; set; } = true;
     public bool SwitchLayout { get; set; } = true;
     public bool SoundOnFix { get; set; } = true;
+    public string LastNewsVersion { get; set; } = "0.0.0";
     public string CleanHotkey { get; set; } = "Shift+Pause";
     public bool CleanPunctuation { get; set; } = true;
     public bool CleanNormalize { get; set; } = true;

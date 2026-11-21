@@ -57,6 +57,8 @@ static class Strings
         ["w_body"] = ("Taswib is running in the tray. Try it: the text below was typed on the wrong layout. Press {0}.", "تصويب شغّال في الـ tray. جرّبه: الكلام اللي تحت اتكتب بلغة غلط. دوس {0}."),
         ["w_settings"] = ("Open Settings", "افتح الإعدادات"),
         ["w_ok"] = ("Got it", "تمام"),
+        ["lastfix"] = ("last fix: {0} chars", "آخر تصليح: {0} حرف"),
+        ["news_title"] = ("What's new in {0}", "الجديد في {0}"),
         ["fixnow"] = ("Fix text now", "صلّح الكلام دلوقتي"),
         ["cleannow"] = ("Clean text now", "نضّف الكلام دلوقتي"),
         ["settings"] = ("Settings…", "الإعدادات…"),

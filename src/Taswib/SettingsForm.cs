@@ -8,7 +8,7 @@ namespace Taswib;
 
 sealed class SettingsForm : Form
 {
-    static int lastPage;
+    internal static int LastPage;
 
     readonly Settings s;
     readonly Action<Settings, bool> apply;
@@ -48,7 +48,7 @@ sealed class SettingsForm : Form
         content.Controls.Add(title);
         Controls.Add(content);
         Controls.Add(side);
-        Show(lastPage);
+        Show(LastPage);
     }
 
     protected override void OnHandleCreated(EventArgs e)
@@ -64,7 +64,7 @@ sealed class SettingsForm : Form
 
     void Show(int page)
     {
-        lastPage = page;
+        LastPage = page;
         for (var i = 0; i < nav.Length; i++) { nav[i].Selected = i == page; nav[i].Invalidate(); }
         title.Text = Names()[page];
         foreach (Control c in body.Controls) c.Dispose();
