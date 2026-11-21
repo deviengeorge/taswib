@@ -68,7 +68,7 @@ Prefer no install? Grab the portable **`Taswib.exe`** from the same page.
 
 ![settings](docs/settings.png)
 
-Double-click the tray icon. Changes save instantly. Light and dark follow Windows.
+Double-click the tray icon. Changes save instantly. Light and dark follow Windows. Real screenshots of every page: [`docs/screens`](docs/screens) (captured automatically from a Windows run in CI).
 
 | Page | What's inside |
 | --- | --- |
