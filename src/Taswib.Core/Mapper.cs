@@ -2,6 +2,8 @@ using System.Text;
 
 namespace Taswib.Core;
 
+public enum Direction { Auto, ToArabic, ToEnglish }
+
 /// <summary>US QWERTY &lt;-&gt; Arabic 101 physical-key mapping. Pure, no Windows deps.</summary>
 public static class Mapper
 {
@@ -36,10 +38,12 @@ public static class Mapper
     public static bool IsArabic(char c) => c >= '؀' && c <= 'ۿ';
 
     /// <summary>Converts text typed on the wrong layout. Direction is picked by which script dominates.</summary>
-    public static string Convert(string text)
+    public static string Convert(string text, Direction mode = Direction.Auto)
     {
         var ar = text.Count(IsArabic);
         var lat = text.Count(c => c < 128 && char.IsLetter(c));
+        if (mode == Direction.ToArabic) { ar = 0; lat = 1; }
+        else if (mode == Direction.ToEnglish) { ar = 1; lat = 0; }
         var sb = new StringBuilder(text.Length);
         foreach (var c in text)
         {
