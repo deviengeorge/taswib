@@ -57,7 +57,7 @@ static class Program
             win = new HotkeyWindow(async id => await RunFix(id == 1 ? Mode.Fix : Mode.Clean));
             ApplyHotkey();
             _ = CheckUpdate(silent: true);
-            var recheck = new System.Windows.Forms.Timer { Interval = 2 * 60 * 60 * 1000 }; // PCs that never restart still get updates
+            var recheck = new System.Windows.Forms.Timer { Interval = 4 * 60 * 60 * 1000 }; // PCs that never restart still get updates
             recheck.Tick += (_, _) => _ = CheckUpdate(silent: true, restart: false);
             recheck.Start();
             var args = Environment.GetCommandLineArgs();
