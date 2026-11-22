@@ -24,13 +24,14 @@ static class Program
             .OnBeforeUninstallFastCallback(_ => RemoveStartup()) // no dead "Start with Windows" entry after uninstall
             .Run(); // handles installer/update hooks, must be first
         using var mutex = new Mutex(true, "Taswib.SingleInstance", out var first);
-        if (!first) return;
+        using var wake = new EventWaitHandle(false, EventResetMode.AutoReset, "Taswib.Wake");
+        if (!first) { wake.Set(); return; } // tell the running copy to open Settings
         ApplicationConfiguration.Initialize();
         Application.ThreadException += (_, e) => Log.Write("ui exception", e.Exception);
         AppDomain.CurrentDomain.UnhandledException += (_, e) => Log.Write("fatal", (Exception)e.ExceptionObject);
         var v = Assembly.GetExecutingAssembly().GetName().Version!;
         Log.Write($"start {v.Major}.{v.Minor}.{v.Build} | {System.Runtime.InteropServices.RuntimeInformation.OSDescription}");
-        Application.Run(new TrayContext());
+        Application.Run(new TrayContext(wake));
     }
 
     static void RemoveStartup()
@@ -46,8 +47,10 @@ static class Program
         string lastFix = "";
         readonly HotkeyWindow win;
 
-        public TrayContext()
+        public TrayContext(EventWaitHandle wake)
         {
+            var ui = new Control(); _ = ui.Handle; // handle on the UI thread, so the wait callback can hop back with BeginInvoke
+            ThreadPool.RegisterWaitForSingleObject(wake, (_, _) => { try { ui.BeginInvoke(ShowSettings); } catch { } }, null, Timeout.Infinite, false);
             tray.Icon = normalIcon;
             tray.ContextMenuStrip = new ContextMenuStrip();
             tray.MouseClick += (_, e) => { if (e.Button == MouseButtons.Left) ShowSettings(); }; // one left click opens the app
