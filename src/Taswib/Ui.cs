@@ -143,9 +143,16 @@ sealed class HotkeyBox : Base
         var key = keyData & Keys.KeyCode; var mods = keyData & Keys.Modifiers;
         if (key is Keys.ControlKey or Keys.ShiftKey or Keys.Menu or Keys.LWin or Keys.RWin) return true; // wait for the real key
         if (key == Keys.Delete && mods == 0 && allowClear) Set("");
-        else if (key != Keys.Escape && key != Keys.Tab) Set(Settings.FormatHotkey(mods, key));
+        else if (key != Keys.Escape && key != Keys.Tab)
+        {
+            if (mods == 0 && !BareOk(key)) System.Media.SystemSounds.Beep.Play(); // a bare letter would be hijacked system-wide; keep old value
+            else Set(Settings.FormatHotkey(mods, key));
+        }
         return key != Keys.Tab; // Tab still moves focus away
     }
+    // Keys that are safe to own globally with no modifier.
+    static bool BareOk(Keys k) => (k >= Keys.F1 && k <= Keys.F24)
+        || k is Keys.Insert or Keys.Pause or Keys.Scroll or Keys.Home or Keys.End or Keys.PageUp or Keys.PageDown or Keys.Delete;
     void Set(string v) { Value = v; Invalidate(); Changed?.Invoke(v); }
 }
 
