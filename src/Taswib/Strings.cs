@@ -74,6 +74,7 @@ static class Strings
         ["taken"] = ("Shortcut {0} is taken. Pick another in Settings.", "الاختصار {0} واخده برنامج تاني. اختار غيره من الإعدادات."),
         ["uptodate"] = ("You are up to date.", "معاك آخر إصدار."),
         ["updating"] = ("Updating to {0}…", "بيتحدّث للإصدار {0}…"),
+        ["newver"] = ("Version {0} is available. Click \"Check for updates\" to get it.", "فيه إصدار {0} جديد. دوس على \"دوّر على تحديث\" عشان تنزّله."),
         ["updfail"] = ("Update check failed (offline?).", "فشل التحديث (مفيش نت؟)."),
         ["disabled"] = ("disabled", "موقوف"),
     };

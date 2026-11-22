@@ -212,7 +212,11 @@ static class Program
                 var rel = await http.GetFromJsonAsync<Release>($"https://api.github.com/repos/{Repo}/releases/latest");
                 var latest = Version.Parse(rel!.tag_name.TrimStart('v'));
                 var mine = Assembly.GetExecutingAssembly().GetName().Version!;
-                if (latest > new Version(mine.Major, mine.Minor, mine.Build)) Process.Start(new ProcessStartInfo(rel.html_url) { UseShellExecute = true });
+                if (latest > new Version(mine.Major, mine.Minor, mine.Build))
+                {
+                    if (silent) tray.ShowBalloonTip(5000, "Taswib", T("newver", latest.ToString(3)), ToolTipIcon.Info); // startup check: never pop a browser
+                    else Process.Start(new ProcessStartInfo(rel.html_url) { UseShellExecute = true });
+                }
                 else if (!silent) tray.ShowBalloonTip(3000, "Taswib", T("uptodate"), ToolTipIcon.Info);
             }
             catch (Exception e) { Log.Write("update check failed", e); if (!silent) tray.ShowBalloonTip(3000, "Taswib", T("updfail"), ToolTipIcon.Warning); }
