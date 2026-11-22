@@ -5,6 +5,7 @@ void Eq(string got, string want) { if (got != want) { Console.Error.WriteLine($"
 
 Eq(Mapper.Convert("high fd; ;dt phg;"), "اهلا بيك كيف حالك");   // the original complaint
 Eq(Mapper.Convert("اهلا بيك كيف حالك"), "high fd; ;dt phg;");   // reverse
+Eq(Mapper.Convert("HIGH FD; ;DT PHG;", Direction.Auto, capsLock: true), "اهلا بيك كيف حالك"); // Caps Lock was on
 Eq(Mapper.Convert("hg 123"), "ال 123");                          // digits stay
 Eq(Mapper.Convert("اهلا", Direction.ToArabic), "اهلا");               // forced direction leaves unmapped text alone
 Eq(Mapper.Convert("high", Direction.ToEnglish), "high");

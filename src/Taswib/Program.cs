@@ -276,7 +276,7 @@ static class Program
                 {
                     var dir = Mapper.Resolve(sel, cfg.Direction);
                     var output = sel;
-                    if (mode == Mode.Fix) output = Mapper.Convert(sel, dir);
+                    if (mode == Mode.Fix) output = Mapper.Convert(sel, dir, Control.IsKeyLocked(Keys.CapsLock));
                     else
                     {
                         if (cfg.CleanPunctuation) output = TextTools.FixPunctuation(output);

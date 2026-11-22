@@ -46,9 +46,12 @@ public static class Mapper
         return ar > lat ? Direction.ToEnglish : Direction.ToArabic;
     }
 
-    public static string Convert(string text, Direction mode = Direction.Auto)
+    /// <param name="capsLock">Caps Lock was on while typing: English letters came out inverted, so flip their case before mapping to Arabic.</param>
+    public static string Convert(string text, Direction mode = Direction.Auto, bool capsLock = false)
     {
         var toEn = Resolve(text, mode) == Direction.ToEnglish;
+        if (capsLock && !toEn)
+            text = string.Concat(text.Select(c => c < 128 && char.IsLetter(c) ? (char.IsUpper(c) ? char.ToLowerInvariant(c) : char.ToUpperInvariant(c)) : c));
         var sb = new StringBuilder(text.Length);
         foreach (var c in text)
         {
