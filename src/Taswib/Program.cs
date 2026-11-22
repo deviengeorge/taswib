@@ -57,6 +57,9 @@ static class Program
             win = new HotkeyWindow(async id => await RunFix(id == 1 ? Mode.Fix : Mode.Clean));
             ApplyHotkey();
             _ = CheckUpdate(silent: true);
+            var recheck = new System.Windows.Forms.Timer { Interval = 12 * 60 * 60 * 1000 }; // PCs that never restart still get updates
+            recheck.Tick += (_, _) => _ = CheckUpdate(silent: true, restart: false);
+            recheck.Start();
             var args = Environment.GetCommandLineArgs();
             if (Array.IndexOf(args, "--settings") >= 0) // used by the CI screenshots; handy as a shortcut too
             {
@@ -193,7 +196,7 @@ static class Program
         }
 
         // Installed (Setup.exe): download + restart into the new version. Portable exe: just open the release page.
-        async Task CheckUpdate(bool silent = false)
+        async Task CheckUpdate(bool silent = false, bool restart = true)
         {
             try
             {
@@ -204,7 +207,8 @@ static class Program
                     if (info == null) { if (!silent) tray.ShowBalloonTip(3000, "Taswib", T("uptodate"), ToolTipIcon.Info); return; }
                     tray.ShowBalloonTip(3000, "Taswib", T("updating", info.TargetFullRelease.Version), ToolTipIcon.Info);
                     await mgr.DownloadUpdatesAsync(info);
-                    mgr.ApplyUpdatesAndRestart(info);
+                    if (restart) mgr.ApplyUpdatesAndRestart(info);
+                    else mgr.WaitExitThenApplyUpdates(info); // periodic check: apply when the app is next closed, don't restart mid-use
                     return;
                 }
                 using var http = new HttpClient();
