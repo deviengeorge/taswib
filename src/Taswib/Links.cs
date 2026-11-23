@@ -9,5 +9,5 @@ static class Links
     public const string WhatsApp = "https://wa.me/201281089983";
     public const string LinkedIn = "https://linkedin.com/in/deviengeorge";
     public const string LinkedInShort = "linkedin.com/in/deviengeorge";
-    public static readonly string TelegramUser = ""; // e.g. "deviengeorge"
+    public static readonly string TelegramUser = "DevienGeorge";
 }
