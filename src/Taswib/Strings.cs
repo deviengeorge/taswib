@@ -84,7 +84,8 @@ static class Strings
         ["uptodate"] = ("You are up to date.", "معاك آخر إصدار."),
         ["updating"] = ("Updating to {0}…", "بيتحدّث للإصدار {0}…"),
         ["newver"] = ("Version {0} is available. Click \"Check for updates\" to get it.", "فيه إصدار {0} جديد. دوس على \"دوّر على تحديث\" عشان تنزّله."),
-        ["updfail"] = ("Update check failed (offline?).", "فشل التحديث (مفيش نت؟)."),
+        ["updfail"] = ("Can't reach GitHub. Check your internet.", "مقدرتش أوصل لـ GitHub. اتأكد من النت."),
+        ["updfail2"] = ("Update check failed. Try again later.", "التحقق من التحديث فشل. جرّب بعدين."),
         ["disabled"] = ("disabled", "موقوف"),
     };
 

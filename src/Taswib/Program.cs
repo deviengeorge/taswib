@@ -241,7 +241,13 @@ static class Program
                 }
                 else if (!silent) Say(T("uptodate"));
             }
-            catch (Exception e) { Log.Write("update check failed", e); if (!silent) Say(T("updfail"), ToolTipIcon.Warning); }
+            catch (Exception e)
+            {
+                Log.Write("update check failed", e);
+                var offline = false;
+                for (var x = e; x != null; x = x.InnerException) if (x is System.Net.Http.HttpRequestException or System.Net.Sockets.SocketException) offline = true;
+                if (!silent) Say(T(offline ? "updfail" : "updfail2"), ToolTipIcon.Warning, 5000);
+            }
         }
 
         record Release(string tag_name, string html_url);
