@@ -109,6 +109,7 @@ static class Program
             {
                 case Result.Fixed:
                     if (Settings.Current.SoundOnFix) System.Media.SystemSounds.Asterisk.Play();
+                    else tray.ShowBalloonTip(1500, "Taswib", T("fixed", Fixer.LastLen), ToolTipIcon.Info); // no sound: still confirm visibly
                     lastFix = T("lastfix", Fixer.LastLen); SetTip();
                     break;
                 case Result.NothingSelected: tray.ShowBalloonTip(3500, "Taswib", T("n_nosel"), ToolTipIcon.Info); break;
