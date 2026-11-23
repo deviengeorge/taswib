@@ -73,6 +73,8 @@ static class Strings
         ["restore"] = ("Restore clipboard after fixing", "رجّع اللي كان في الحافظة"),
         ["lang"] = ("Language", "اللغة"),
         ["taken"] = ("Shortcut {0} is taken. Pick another in Settings.", "الاختصار {0} واخده برنامج تاني. اختار غيره من الإعدادات."),
+        ["chk"] = ("Checking for updates…", "بدوّر على تحديث…"),
+        ["newver_open"] = ("Version {0} is out. Opening the download page…", "فيه إصدار {0} جديد. بفتحلك صفحة التحميل…"),
         ["uptodate"] = ("You are up to date.", "معاك آخر إصدار."),
         ["updating"] = ("Updating to {0}…", "بيتحدّث للإصدار {0}…"),
         ["newver"] = ("Version {0} is available. Click \"Check for updates\" to get it.", "فيه إصدار {0} جديد. دوس على \"دوّر على تحديث\" عشان تنزّله."),

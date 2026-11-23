@@ -195,7 +195,8 @@ sealed class NavItem : Base
     readonly string text;
     bool hover;
     public bool Selected { get; set; }
-    public NavItem(string text) { this.text = text; Size = new Size(190, 44); Cursor = Cursors.Hand; }
+    readonly char glyph;
+    public NavItem(string text, char glyph) { this.text = text; this.glyph = glyph; Size = new Size(190, 44); Cursor = Cursors.Hand; }
     protected override void OnPaint(PaintEventArgs e)
     {
         var g = e.Graphics; g.Clear(Theme.Side); g.SmoothingMode = SmoothingMode.AntiAlias;
@@ -211,7 +212,9 @@ sealed class NavItem : Base
             using var b = new SolidBrush(Theme.Accent);
             g.FillRectangle(b, bx, 14, 3, Height - 28);
         }
-        TextRenderer.DrawText(g, text, Selected ? Theme.Semi : Theme.Body, new Rectangle(28, 0, Width - 56, Height), Theme.Text, Theme.Flags());
+        var ar = Strings.Arabic;
+        TextRenderer.DrawText(g, glyph.ToString(), Icons.Font, new Rectangle(ar ? Width - 28 - 22 : 28, 0, 22, Height), Selected ? Theme.Accent : Theme.Sub, Theme.Flags(center: true));
+        TextRenderer.DrawText(g, text, Selected ? Theme.Semi : Theme.Body, new Rectangle(ar ? 20 : 58, 0, Width - 78, Height), Theme.Text, Theme.Flags());
     }
     protected override void OnMouseEnter(EventArgs e) { hover = true; Invalidate(); base.OnMouseEnter(e); }
     protected override void OnMouseLeave(EventArgs e) { hover = false; Invalidate(); base.OnMouseLeave(e); }
@@ -261,5 +264,21 @@ sealed class Profile : Base
         TextRenderer.DrawText(g, sub, Theme.Small, new Rectangle(x, 50, w, 22), Theme.Sub, Theme.Flags());
         var wrap = TextFormatFlags.WordBreak | TextFormatFlags.NoPadding | (Strings.Arabic ? TextFormatFlags.Right | TextFormatFlags.RightToLeft : 0);
         TextRenderer.DrawText(g, intro, Theme.Body, new Rectangle(x, 80, w, 40), Theme.Text, wrap);
+    }
+}
+
+static class Icons
+{
+    public static readonly Font Font = new("Segoe MDL2 Assets", 12f);
+    // 16px menu icon from an icon-font glyph.
+    public static Bitmap Glyph(char c)
+    {
+        var bmp = new Bitmap(16, 16);
+        using var g = Graphics.FromImage(bmp);
+        g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAlias;
+        using var f = new Font("Segoe MDL2 Assets", 10f);
+        TextRenderer.DrawText(g, c.ToString(), f, new Rectangle(0, 0, 16, 16), Color.FromArgb(70, 70, 70),
+            TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
+        return bmp;
     }
 }

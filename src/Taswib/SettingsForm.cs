@@ -12,7 +12,7 @@ sealed class SettingsForm : Form
 
     readonly Settings s;
     readonly Action<Settings, bool> apply;
-    readonly Action checkUpdate;
+    readonly Func<Action<string>, Task> checkUpdate;
     bool startupOn;
     readonly Label title = new() { Dock = DockStyle.Top, Height = 48, Font = Theme.Title, ForeColor = Theme.Text, BackColor = Theme.Bg };
     readonly FlowLayoutPanel body = new() { Dock = DockStyle.Fill, FlowDirection = FlowDirection.TopDown, WrapContents = false, BackColor = Theme.Bg };
@@ -21,7 +21,7 @@ sealed class SettingsForm : Form
     /// <summary>Set when the language changed: the caller reopens the window so it is laid out for the new language.</summary>
     public bool Reopen { get; private set; }
 
-    public SettingsForm(Settings s, bool startupOn, Action<Settings, bool> apply, Action checkUpdate)
+    public SettingsForm(Settings s, bool startupOn, Action<Settings, bool> apply, Func<Action<string>, Task> checkUpdate)
     {
         this.s = s; this.startupOn = startupOn; this.apply = apply; this.checkUpdate = checkUpdate;
         Text = T("title");
@@ -30,7 +30,7 @@ sealed class SettingsForm : Form
         AutoScaleDimensions = new SizeF(96f, 96f); AutoScaleMode = AutoScaleMode.Dpi; StartPosition = FormStartPosition.CenterScreen; ClientSize = new Size(790, 560);
         BackColor = Theme.Bg; Font = Theme.Body;
 
-        nav = Names().Select(n => new NavItem(n)).ToArray();
+        nav = Names().Select((n, i) => new NavItem(n, NavIcons[i])).ToArray();
         var side = new Panel { Dock = Arabic ? DockStyle.Right : DockStyle.Left, Width = 190, BackColor = Theme.Side };
         for (var i = nav.Length - 1; i >= 0; i--)
         {
@@ -58,6 +58,7 @@ sealed class SettingsForm : Form
     }
     [DllImport("dwmapi.dll")] static extern int DwmSetWindowAttribute(nint h, int attr, ref int v, int size);
 
+    static readonly char[] NavIcons = { '\uE713', '\uE765', '\uE8AC', '\uE74D', '\uE715', '\uE946' };
     static string[] Names() => new[] { T("nav_general"), T("nav_shortcuts"), T("nav_fix"), T("nav_clean"), T("nav_contact"), T("nav_about") };
 
     void Save() => apply(s, startupOn);
@@ -147,7 +148,17 @@ sealed class SettingsForm : Form
     IEnumerable<Control> About()
     {
         var ver = Assembly.GetExecutingAssembly().GetName().Version!;
-        yield return new Card($"Taswib {ver.Major}.{ver.Minor}.{ver.Build}", T("about_d"), Btn(T("update"), () => checkUpdate()));
+        var upd = Btn(T("update"), () => { });
+        upd.Click += async (_, _) =>
+        {
+            upd.Enabled = false;
+            void Show(string msg) { if (upd.IsDisposed) return; upd.Text = msg; upd.Width = TextRenderer.MeasureText(msg, Theme.Body).Width + 36; upd.Parent?.PerformLayout(); upd.Parent?.Invalidate(); }
+            var old = upd.Text;
+            await checkUpdate(Show);
+            await Task.Delay(4000);
+            if (!upd.IsDisposed) { Show(old); upd.Enabled = true; }
+        };
+        yield return new Card($"Taswib {ver.Major}.{ver.Minor}.{ver.Build}", T("about_d"), upd);
         yield return new Card(T("github"), "github.com/deviengeorge/taswib", Btn(T("open"), () =>
             Process.Start(new ProcessStartInfo("https://github.com/deviengeorge/taswib") { UseShellExecute = true })));
         var copy = Btn(T("btn_copy"), () => { });

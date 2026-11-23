@@ -124,11 +124,11 @@ static class Program
             m.RightToLeft = Arabic ? RightToLeft.Yes : RightToLeft.No;
             m.Items.AddRange(new ToolStripItem[]
             {
-                new ToolStripMenuItem(T("fixnow"), null, async (_, _) => await RunFix(Mode.Fix)),
-                new ToolStripMenuItem(T("cleannow"), null, async (_, _) => await RunFix(Mode.Clean)),
-                new ToolStripMenuItem(T("settings"), null, (_, _) => ShowSettings()),
-                new ToolStripMenuItem(T("update"), null, async (_, _) => await CheckUpdate()),
-                new ToolStripMenuItem(T("exit"), null, (_, _) => { tray.Visible = false; Application.Exit(); }),
+                new ToolStripMenuItem(T("fixnow"), Icons.Glyph('\uE8AC'), async (_, _) => await RunFix(Mode.Fix)),
+                new ToolStripMenuItem(T("cleannow"), Icons.Glyph('\uE74D'), async (_, _) => await RunFix(Mode.Clean)),
+                new ToolStripMenuItem(T("settings"), Icons.Glyph('\uE713'), (_, _) => ShowSettings()),
+                new ToolStripMenuItem(T("update"), Icons.Glyph('\uE895'), async (_, _) => await CheckUpdate()),
+                new ToolStripMenuItem(T("exit"), Icons.Glyph('\uE7E8'), (_, _) => { tray.Visible = false; Application.Exit(); }),
             });
         }
 
@@ -176,7 +176,7 @@ static class Program
             SettingsForm f;
             do
             {
-                f = openForm = new SettingsForm(Settings.Current, IsStartup(), (s, startup) => { s.Save(); SetStartup(startup); ApplyHotkey(); }, () => _ = CheckUpdate());
+                f = openForm = new SettingsForm(Settings.Current, IsStartup(), (s, startup) => { s.Save(); SetStartup(startup); ApplyHotkey(); }, report => CheckUpdate(report: report));
                 f.ShowDialog();
                 f.Dispose();
             } while (f.Reopen);
@@ -196,16 +196,22 @@ static class Program
         }
 
         // Installed (Setup.exe): download + restart into the new version. Portable exe: just open the release page.
-        async Task CheckUpdate(bool silent = false, bool restart = true)
+        // report != null (Settings button): show the result there; otherwise as a tray balloon.
+        async Task CheckUpdate(bool silent = false, bool restart = true, Action<string>? report = null)
         {
+            void Say(string msg, ToolTipIcon icon = ToolTipIcon.Info, int ms = 3000)
+            {
+                if (report != null) report(msg); else tray.ShowBalloonTip(ms, "Taswib", msg, icon);
+            }
             try
             {
+                if (!silent) Say(T("chk"));
                 var mgr = new UpdateManager(new GithubSource($"https://github.com/{Repo}", null, false));
                 if (mgr.IsInstalled)
                 {
                     var info = await mgr.CheckForUpdatesAsync();
-                    if (info == null) { if (!silent) tray.ShowBalloonTip(3000, "Taswib", T("uptodate"), ToolTipIcon.Info); return; }
-                    tray.ShowBalloonTip(3000, "Taswib", T("updating", info.TargetFullRelease.Version), ToolTipIcon.Info);
+                    if (info == null) { if (!silent) Say(T("uptodate")); return; }
+                    if (!silent) Say(T("updating", info.TargetFullRelease.Version));
                     await mgr.DownloadUpdatesAsync(info);
                     if (restart) mgr.ApplyUpdatesAndRestart(info);
                     else mgr.WaitExitThenApplyUpdates(info); // periodic check: apply when the app is next closed, don't restart mid-use
@@ -218,12 +224,12 @@ static class Program
                 var mine = Assembly.GetExecutingAssembly().GetName().Version!;
                 if (latest > new Version(mine.Major, mine.Minor, mine.Build))
                 {
-                    if (silent) tray.ShowBalloonTip(5000, "Taswib", T("newver", latest.ToString(3)), ToolTipIcon.Info); // startup check: never pop a browser
-                    else Process.Start(new ProcessStartInfo(rel.html_url) { UseShellExecute = true });
+                    if (silent) Say(T("newver", latest.ToString(3)), ToolTipIcon.Info, 5000); // startup check: never pop a browser
+                    else { Say(T("newver_open", latest.ToString(3))); Process.Start(new ProcessStartInfo(rel.html_url) { UseShellExecute = true }); }
                 }
-                else if (!silent) tray.ShowBalloonTip(3000, "Taswib", T("uptodate"), ToolTipIcon.Info);
+                else if (!silent) Say(T("uptodate"));
             }
-            catch (Exception e) { Log.Write("update check failed", e); if (!silent) tray.ShowBalloonTip(3000, "Taswib", T("updfail"), ToolTipIcon.Warning); }
+            catch (Exception e) { Log.Write("update check failed", e); if (!silent) Say(T("updfail"), ToolTipIcon.Warning); }
         }
 
         record Release(string tag_name, string html_url);
