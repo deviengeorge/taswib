@@ -9,7 +9,7 @@ sealed class NewsForm : Form
         Text = T("news_title", $"{v.Major}.{v.Minor}");
         Icon = Icon.ExtractAssociatedIcon(Environment.ProcessPath!);
         FormBorderStyle = FormBorderStyle.FixedDialog; MaximizeBox = false; MinimizeBox = false;
-        StartPosition = FormStartPosition.CenterScreen; ClientSize = new Size(540, 280);
+        AutoScaleDimensions = new SizeF(96f, 96f); AutoScaleMode = AutoScaleMode.Dpi; StartPosition = FormStartPosition.CenterScreen; ClientSize = new Size(540, 280);
         BackColor = Theme.Bg; Font = Theme.Body;
         var rtl = Arabic ? RightToLeft.Yes : RightToLeft.No;
         var head = new Label { Text = Text, Font = Theme.Title, ForeColor = Theme.Text, Location = new Point(24, 20), Size = new Size(492, 44), TextAlign = Arabic ? ContentAlignment.MiddleRight : ContentAlignment.MiddleLeft, RightToLeft = rtl };

@@ -11,7 +11,7 @@ sealed class WelcomeForm : Form
         Text = T("w_title");
         Icon = Icon.ExtractAssociatedIcon(Environment.ProcessPath!);
         FormBorderStyle = FormBorderStyle.FixedDialog; MaximizeBox = false; MinimizeBox = false; TopMost = true;
-        StartPosition = FormStartPosition.CenterScreen; ClientSize = new Size(540, 330);
+        AutoScaleDimensions = new SizeF(96f, 96f); AutoScaleMode = AutoScaleMode.Dpi; StartPosition = FormStartPosition.CenterScreen; ClientSize = new Size(540, 330);
         BackColor = Theme.Bg; Font = Theme.Body;
         var align = Arabic ? ContentAlignment.TopRight : ContentAlignment.TopLeft;
         var rtl = Arabic ? RightToLeft.Yes : RightToLeft.No;

@@ -27,7 +27,7 @@ sealed class SettingsForm : Form
         Text = T("title");
         Icon = Icon.ExtractAssociatedIcon(Environment.ProcessPath!);
         FormBorderStyle = FormBorderStyle.FixedDialog; MaximizeBox = false; MinimizeBox = false;
-        StartPosition = FormStartPosition.CenterScreen; ClientSize = new Size(790, 560);
+        AutoScaleDimensions = new SizeF(96f, 96f); AutoScaleMode = AutoScaleMode.Dpi; StartPosition = FormStartPosition.CenterScreen; ClientSize = new Size(790, 560);
         BackColor = Theme.Bg; Font = Theme.Body;
 
         nav = Names().Select(n => new NavItem(n)).ToArray();
