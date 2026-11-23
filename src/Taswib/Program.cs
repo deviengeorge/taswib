@@ -213,9 +213,20 @@ static class Program
                     var info = await mgr.CheckForUpdatesAsync();
                     if (info == null) { if (!silent) Say(T("uptodate")); return; }
                     if (!silent) Say(T("updating", info.TargetFullRelease.Version));
-                    await mgr.DownloadUpdatesAsync(info);
-                    if (restart) mgr.ApplyUpdatesAndRestart(info);
-                    else mgr.WaitExitThenApplyUpdates(info); // periodic check: apply when the app is next closed, don't restart mid-use
+                    var last = -1;
+                    await mgr.DownloadUpdatesAsync(info, pct =>
+                    {
+                        if (silent || pct / 10 == last) return; // every 10%, not every tick
+                        last = pct / 10;
+                        var msg = T("dl", pct);
+                        if (report != null) report(msg); else tray.Text = msg;
+                    });
+                    if (restart) { if (!silent) Say(T("restart")); mgr.ApplyUpdatesAndRestart(info); }
+                    else
+                    {
+                        mgr.WaitExitThenApplyUpdates(info); // periodic check: apply when the app is next closed, don't restart mid-use
+                        Say(T("ready", info.TargetFullRelease.Version), ToolTipIcon.Info, 5000);
+                    }
                     return;
                 }
                 using var http = new HttpClient();
