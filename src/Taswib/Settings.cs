@@ -42,7 +42,7 @@ public sealed class Settings
     public void Save()
     {
         Directory.CreateDirectory(Path.GetDirectoryName(PathFile)!);
-        File.WriteAllText(PathFile, JsonSerializer.Serialize(this, Opt));
+        var tmp = PathFile + ".tmp"; File.WriteAllText(tmp, JsonSerializer.Serialize(this, Opt)); File.Move(tmp, PathFile, overwrite: true);
     }
 
     // Hotkey string "Ctrl+Shift+Space" <-> (modifier flags, key)

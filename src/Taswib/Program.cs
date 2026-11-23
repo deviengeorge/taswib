@@ -388,7 +388,7 @@ static class Program
 
         static async Task<string?> Wait()
         {
-            for (var i = 0; i < 10; i++) { await Task.Delay(30); var t = GetText(); if (!string.IsNullOrEmpty(t)) return t; }
+            for (var i = 0; i < 20; i++) { await Task.Delay(30); var t = GetText(); if (!string.IsNullOrEmpty(t)) return t; }
             return null;
         }
 
