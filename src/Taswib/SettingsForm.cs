@@ -45,6 +45,8 @@ sealed class SettingsForm : Form
         title.TextAlign = Arabic ? ContentAlignment.MiddleRight : ContentAlignment.MiddleLeft;
         var content = new Panel { Dock = DockStyle.Fill, Padding = new Padding(28, 22, 28, 16), BackColor = Theme.Bg };
         content.Controls.Add(body);
+        content.Controls.Add(saved);
+        savedTimer.Tick += (_, _) => { saved.Text = ""; savedTimer.Stop(); };
         content.Controls.Add(title);
         Controls.Add(content);
         Controls.Add(side);
@@ -61,7 +63,14 @@ sealed class SettingsForm : Form
     static readonly char[] NavIcons = { '\uE713', '\uE765', '\uE8AC', '\uE74D', '\uE715', '\uE946' };
     static string[] Names() => new[] { T("nav_general"), T("nav_shortcuts"), T("nav_fix"), T("nav_clean"), T("nav_contact"), T("nav_about") };
 
-    void Save() => apply(s, startupOn);
+    readonly Label saved = new() { Dock = DockStyle.Bottom, Height = 24, ForeColor = Theme.Sub, BackColor = Theme.Bg, Font = Theme.Small };
+    readonly System.Windows.Forms.Timer savedTimer = new() { Interval = 1500 };
+    void Save()
+    {
+        apply(s, startupOn);
+        saved.Text = T("saved"); saved.TextAlign = Arabic ? ContentAlignment.MiddleRight : ContentAlignment.MiddleLeft;
+        savedTimer.Stop(); savedTimer.Start();
+    }
 
     void Show(int page)
     {
