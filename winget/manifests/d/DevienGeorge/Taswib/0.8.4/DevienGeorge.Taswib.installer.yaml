@@ -1,0 +1,17 @@
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.installer.1.6.0.schema.json
+PackageIdentifier: DevienGeorge.Taswib
+PackageVersion: 0.8.4
+InstallerType: exe
+Scope: user
+InstallModes:
+- interactive
+- silent
+InstallerSwitches:
+  Silent: --silent
+  SilentWithProgress: --silent
+Installers:
+- Architecture: x64
+  InstallerUrl: https://github.com/deviengeorge/taswib/releases/download/v0.8.4/Taswib-win-Setup.exe
+  InstallerSha256: FC4CC1505F4E27D2EA8D21199C86F3B94616A9ED070F3168F02D635A3B89A65E
+ManifestType: installer
+ManifestVersion: 1.6.0
