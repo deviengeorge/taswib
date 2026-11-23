@@ -116,6 +116,7 @@ sealed class Segmented : Base
 sealed class HotkeyBox : Base
 {
     readonly bool allowClear;
+    bool captured;
     public string Value { get; private set; }
     public event Action<string>? Changed;
 
@@ -130,11 +131,11 @@ sealed class HotkeyBox : Base
         using var path = Theme.Round(new RectangleF(1, 1, Width - 3, Height - 3), 9);
         using (var b = new SolidBrush(Theme.Chip)) g.FillPath(b, path);
         using (var pen = new Pen(Focused ? Theme.Accent : Theme.Border, Focused ? 2f : 1f)) g.DrawPath(pen, path);
-        var text = Focused ? "…" : (Value == "" ? "—" : Value);
+        var text = Focused && !captured ? "…" : (Value == "" ? "—" : Value); // "…" only until a key is pressed
         TextRenderer.DrawText(g, text, Theme.Semi, ClientRectangle, Theme.Text, Theme.Flags(center: true));
     }
     protected override void OnMouseDown(MouseEventArgs e) { Focus(); base.OnMouseDown(e); }
-    protected override void OnGotFocus(EventArgs e) { Invalidate(); base.OnGotFocus(e); }
+    protected override void OnGotFocus(EventArgs e) { captured = false; Invalidate(); base.OnGotFocus(e); }
     protected override void OnLostFocus(EventArgs e) { Invalidate(); base.OnLostFocus(e); }
     protected override bool IsInputKey(Keys keyData) => true;
     protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
@@ -153,7 +154,7 @@ sealed class HotkeyBox : Base
     // Keys that are safe to own globally with no modifier.
     static bool BareOk(Keys k) => (k >= Keys.F1 && k <= Keys.F24)
         || k is Keys.Insert or Keys.Pause or Keys.Scroll or Keys.Home or Keys.End or Keys.PageUp or Keys.PageDown or Keys.Delete;
-    void Set(string v) { Value = v; Invalidate(); Changed?.Invoke(v); }
+    public void Set(string v) { Value = v; captured = true; Invalidate(); Changed?.Invoke(v); }
 }
 
 sealed class Card : Panel

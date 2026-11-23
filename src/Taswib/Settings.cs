@@ -10,7 +10,7 @@ public sealed class Settings
 {
     public bool Enabled { get; set; } = true;
     public string Hotkey { get; set; } = "Insert";
-    public Scope Scope { get; set; } = Scope.SelectionOrLine;
+    public Scope Scope { get; set; } = Scope.SelectionOrAll;
     public Direction Direction { get; set; } = Direction.Auto;
     public bool RestoreClipboard { get; set; } = true;
     public bool SwitchLayout { get; set; } = true;

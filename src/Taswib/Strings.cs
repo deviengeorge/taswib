@@ -51,6 +51,7 @@ static class Strings
         ["diag"] = ("Diagnostics", "التشخيص"),
         ["diag_d"] = ("Log and debug info for bug reports", "السجل ومعلومات المشكلة للإبلاغ عنها"),
         ["btn_copy"] = ("Copy debug info", "انسخ معلومات المشكلة"),
+        ["reset"] = ("Reset", "الأصلي"),
         ["copied"] = ("Copied ✓", "اتنسخت ✓"),
         ["btn_log"] = ("Open log folder", "افتح فولدر السجل"),
         ["w_title"] = ("Welcome to Taswib", "أهلاً في تصويب"),

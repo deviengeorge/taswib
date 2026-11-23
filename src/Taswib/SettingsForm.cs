@@ -102,8 +102,17 @@ sealed class SettingsForm : Form
     {
         var f = new HotkeyBox(s.Hotkey, false); f.Changed += k => { s.Hotkey = k; Save(); };
         var c = new HotkeyBox(s.CleanHotkey, true); c.Changed += k => { s.CleanHotkey = k; Save(); };
-        yield return new Card(T("t_fixkey"), T("fixkey_d"), f);
-        yield return new Card(T("t_cleankey"), T("cleankey_d"), c);
+        yield return new Card(T("t_fixkey"), T("fixkey_d"), WithReset(f, new Settings().Hotkey));
+        yield return new Card(T("t_cleankey"), T("cleankey_d"), WithReset(c, new Settings().CleanHotkey));
+    }
+
+    static Control WithReset(HotkeyBox box, string def)
+    {
+        var b = Btn(T("reset"), () => box.Set(def));
+        var p = new Panel { Size = new Size(box.Width + 8 + b.Width, 36) };
+        box.Location = new Point(0, 0); b.Location = new Point(box.Width + 8, 0);
+        p.Controls.Add(box); p.Controls.Add(b);
+        return p;
     }
 
     IEnumerable<Control> Fixing()
