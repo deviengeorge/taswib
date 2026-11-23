@@ -117,12 +117,15 @@ sealed class HotkeyBox : Base
 {
     readonly bool allowClear;
     bool captured;
+    string hint = "";
+    readonly System.Windows.Forms.Timer hintTimer = new() { Interval = 2200 };
     public string Value { get; private set; }
     public event Action<string>? Changed;
 
     public HotkeyBox(string value, bool allowClear)
     {
         Value = value; this.allowClear = allowClear;
+        hintTimer.Tick += (_, _) => { hint = ""; hintTimer.Stop(); Invalidate(); };
         SetStyle(ControlStyles.Selectable, true); TabStop = true; Cursor = Cursors.Hand; Size = new Size(190, 36);
     }
     protected override void OnPaint(PaintEventArgs e)
@@ -132,7 +135,8 @@ sealed class HotkeyBox : Base
         using (var b = new SolidBrush(Theme.Chip)) g.FillPath(b, path);
         using (var pen = new Pen(Focused ? Theme.Accent : Theme.Border, Focused ? 2f : 1f)) g.DrawPath(pen, path);
         var text = Focused && !captured ? "…" : (Value == "" ? "—" : Value); // "…" only until a key is pressed
-        TextRenderer.DrawText(g, text, Theme.Semi, ClientRectangle, Theme.Text, Theme.Flags(center: true));
+        if (hint != "") TextRenderer.DrawText(g, hint, Theme.Small, ClientRectangle, Color.FromArgb(230, 90, 90), Theme.Flags(center: true));
+        else TextRenderer.DrawText(g, text, Theme.Semi, ClientRectangle, Theme.Text, Theme.Flags(center: true));
     }
     protected override void OnMouseDown(MouseEventArgs e) { Focus(); base.OnMouseDown(e); }
     protected override void OnGotFocus(EventArgs e) { captured = false; Invalidate(); base.OnGotFocus(e); }
@@ -146,7 +150,7 @@ sealed class HotkeyBox : Base
         if (key == Keys.Delete && mods == 0 && allowClear) Set("");
         else if (key != Keys.Escape && key != Keys.Tab)
         {
-            if (mods == 0 && !BareOk(key)) System.Media.SystemSounds.Beep.Play(); // a bare letter would be hijacked system-wide; keep old value
+            if (mods == 0 && !BareOk(key)) { System.Media.SystemSounds.Beep.Play(); hint = Strings.T("hk_bare"); hintTimer.Stop(); hintTimer.Start(); Invalidate(); } // a bare letter would be hijacked system-wide; keep old value
             else Set(Settings.FormatHotkey(mods, key));
         }
         return key != Keys.Tab; // Tab still moves focus away
