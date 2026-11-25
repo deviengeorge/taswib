@@ -2,7 +2,10 @@
 <assembly manifestVersion="1.0" xmlns="urn:schemas-microsoft-com:asm.v1">
   <application xmlns="urn:schemas-microsoft-com:asm.v3">
     <windowsSettings>
-      <dpiAwareness xmlns="http://schemas.microsoft.com/SMI/2016/WindowsSettings">PerMonitorV2</dpiAwareness>
+      <!-- ponytail: all UI is laid out in 96-DPI pixels (Ui.cs paint code, pages built after AutoScale ran),
+           so let Windows scale the whole window; gdiScaling keeps GDI text sharp. Go PerMonitorV2 only after scaling every pixel constant. -->
+      <dpiAwareness xmlns="http://schemas.microsoft.com/SMI/2016/WindowsSettings">unaware</dpiAwareness>
+      <gdiScaling xmlns="http://schemas.microsoft.com/SMI/2017/WindowsSettings">true</gdiScaling>
     </windowsSettings>
   </application>
 </assembly>
