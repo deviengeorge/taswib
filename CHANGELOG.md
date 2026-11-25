@@ -2,6 +2,9 @@
 
 User-facing changes per release. Updates download as a small delta (~130 KB, ~60 KB on the `fd` channel).
 
+## 0.8.11 — 2026-11-25
+- Faster fix: Taswib reacts as soon as the copy lands, and falls back to the current line sooner when nothing is selected.
+
 ## 0.8.10 — 2026-11-25
 - If there is no internet when Taswib starts (e.g. Wi-Fi not connected yet at login), the update check retries every 30 minutes instead of waiting 4 hours.
 
