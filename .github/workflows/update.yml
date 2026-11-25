@@ -1,0 +1,26 @@
+name: update
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['src/**', 'tests/e2e/update.ps1', '.github/workflows/update.yml']
+jobs:
+  update:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with: { dotnet-version: '8.0.x' }
+      - name: Pack old (0.0.1) and new (0.0.2) into one local feed
+        shell: bash
+        run: |
+          dotnet tool install -g vpk --version 1.2.161
+          dotnet publish src/Taswib -c Release -r win-x64 --self-contained -p:DebugType=none -p:Version=0.0.1 -o p1
+          vpk pack -u Taswib -v 0.0.1 -p p1 -e Taswib.exe -i src/Taswib/taswib.ico -o feed
+          mkdir old && cp feed/*Setup.exe old/Setup.exe
+          dotnet publish src/Taswib -c Release -r win-x64 --self-contained -p:DebugType=none -p:Version=0.0.2 -o p2
+          vpk pack -u Taswib -v 0.0.2 -p p2 -e Taswib.exe -i src/Taswib/taswib.ico -o feed
+          ls feed
+      - name: Old install updates itself on start
+        shell: pwsh
+        run: ./tests/e2e/update.ps1 -Setup "$PWD\old\Setup.exe" -Feed "$PWD\feed" -Expect 0.0.2

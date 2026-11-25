@@ -207,7 +207,8 @@ static class Program
             try
             {
                 if (!silent) Say(T("chk"));
-                var mgr = new UpdateManager(new GithubSource($"https://github.com/{Repo}", null, false));
+                var feed = Environment.GetEnvironmentVariable("TASWIB_UPDATE_FEED"); // CI update test serves releases from a local folder
+                var mgr = string.IsNullOrEmpty(feed) ? new UpdateManager(new GithubSource($"https://github.com/{Repo}", null, false)) : new UpdateManager(feed);
                 if (mgr.IsInstalled)
                 {
                     var info = await mgr.CheckForUpdatesAsync();
