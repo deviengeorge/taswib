@@ -198,6 +198,7 @@ static class Program
 
         // Installed (Setup.exe): download + restart into the new version. Portable exe: just open the release page.
         // report != null (Settings button): show the result there; otherwise as a tray balloon.
+        bool retryPending;
         async Task CheckUpdate(bool silent = false, bool restart = true, Action<string>? report = null)
         {
             void Say(string msg, ToolTipIcon icon = ToolTipIcon.Info, int ms = 3000)
@@ -244,6 +245,11 @@ static class Program
                 var offline = false;
                 for (var x = e; x != null; x = x.InnerException) if (x is System.Net.Http.HttpRequestException or System.Net.Sockets.SocketException) offline = true;
                 if (!silent) Say(T(offline ? "updfail" : "updfail2"), ToolTipIcon.Warning, 5000);
+                else if (offline && !retryPending) // e.g. started at login before Wi-Fi connected: don't wait for the 4-hour check
+                {
+                    retryPending = true;
+                    After(30 * 60 * 1000, () => { retryPending = false; _ = CheckUpdate(silent: true, restart: false); }); // no restart mid-use
+                }
             }
         }
 
