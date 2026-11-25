@@ -14,7 +14,7 @@ sealed class SettingsForm : Form
     readonly Action<Settings, bool> apply;
     readonly Func<Action<string>, Task> checkUpdate;
     bool startupOn;
-    readonly Label title = new() { Dock = DockStyle.Top, Height = 48, Font = Theme.Title, ForeColor = Theme.Text, BackColor = Theme.Bg };
+    readonly Label title = new() { Dock = DockStyle.Top, Height = Theme.S(48), Font = Theme.Title, ForeColor = Theme.Text, BackColor = Theme.Bg };
     readonly FlowLayoutPanel body = new() { Dock = DockStyle.Fill, FlowDirection = FlowDirection.TopDown, WrapContents = false, BackColor = Theme.Bg };
     readonly NavItem[] nav;
 
@@ -27,11 +27,11 @@ sealed class SettingsForm : Form
         Text = T("title");
         Icon = Icon.ExtractAssociatedIcon(Environment.ProcessPath!);
         FormBorderStyle = FormBorderStyle.FixedDialog; MaximizeBox = false; MinimizeBox = false;
-        AutoScaleDimensions = new SizeF(96f, 96f); AutoScaleMode = AutoScaleMode.Dpi; StartPosition = FormStartPosition.CenterScreen; ClientSize = new Size(790, 560);
+        AutoScaleMode = AutoScaleMode.None; StartPosition = FormStartPosition.CenterScreen; ClientSize = new Size(Theme.S(790), Theme.S(560)); // sizes scaled by hand, see Theme.S
         BackColor = Theme.Bg; Font = Theme.Body;
 
         nav = Names().Select((n, i) => new NavItem(n, NavIcons[i])).ToArray();
-        var side = new Panel { Dock = Arabic ? DockStyle.Right : DockStyle.Left, Width = 190, BackColor = Theme.Side };
+        var side = new Panel { Dock = Arabic ? DockStyle.Right : DockStyle.Left, Width = Theme.S(190), BackColor = Theme.Side };
         for (var i = nav.Length - 1; i >= 0; i--)
         {
             var idx = i;
@@ -43,7 +43,7 @@ sealed class SettingsForm : Form
         // docked controls stack bottom-up in add order, so Brand (added last) ends on top
 
         title.TextAlign = Arabic ? ContentAlignment.MiddleRight : ContentAlignment.MiddleLeft;
-        var content = new Panel { Dock = DockStyle.Fill, Padding = new Padding(28, 22, 28, 16), BackColor = Theme.Bg };
+        var content = new Panel { Dock = DockStyle.Fill, Padding = new Padding(Theme.S(28), Theme.S(22), Theme.S(28), Theme.S(16)), BackColor = Theme.Bg };
         content.Controls.Add(body);
         content.Controls.Add(saved);
         savedTimer.Tick += (_, _) => { saved.Text = ""; savedTimer.Stop(); };
@@ -63,7 +63,7 @@ sealed class SettingsForm : Form
     static readonly char[] NavIcons = { '\uE713', '\uE765', '\uE8AC', '\uE74D', '\uE715', '\uE946' };
     static string[] Names() => new[] { T("nav_general"), T("nav_shortcuts"), T("nav_fix"), T("nav_clean"), T("nav_contact"), T("nav_about") };
 
-    readonly Label saved = new() { Dock = DockStyle.Bottom, Height = 24, ForeColor = Theme.Sub, BackColor = Theme.Bg, Font = Theme.Small };
+    readonly Label saved = new() { Dock = DockStyle.Bottom, Height = Theme.S(24), ForeColor = Theme.Sub, BackColor = Theme.Bg, Font = Theme.Small };
     readonly System.Windows.Forms.Timer savedTimer = new() { Interval = 1500 };
     void Save()
     {
@@ -119,8 +119,8 @@ sealed class SettingsForm : Form
     static Control WithReset(HotkeyBox box, string def)
     {
         var b = Btn(T("reset"), () => box.Set(def));
-        var p = new Panel { Size = new Size(box.Width + 8 + b.Width, 36) };
-        box.Location = new Point(0, 0); b.Location = new Point(box.Width + 8, 0);
+        var p = new Panel { Size = new Size(box.Width + Theme.S(8) + b.Width, Theme.S(36)) };
+        box.Location = new Point(0, 0); b.Location = new Point(box.Width + Theme.S(8), 0);
         p.Controls.Add(box); p.Controls.Add(b);
         return p;
     }
@@ -161,7 +161,7 @@ sealed class SettingsForm : Form
         upd.Click += async (_, _) =>
         {
             upd.Enabled = false;
-            void Show(string msg) { if (upd.IsDisposed) return; upd.Text = msg; upd.Width = TextRenderer.MeasureText(msg, Theme.Body).Width + 36; upd.Parent?.PerformLayout(); upd.Parent?.Invalidate(); }
+            void Show(string msg) { if (upd.IsDisposed) return; upd.Text = msg; upd.Width = TextRenderer.MeasureText(msg, Theme.Body).Width + Theme.S(36); upd.Parent?.PerformLayout(); upd.Parent?.Invalidate(); }
             var old = upd.Text;
             await checkUpdate(Show);
             await Task.Delay(4000);
@@ -179,9 +179,10 @@ sealed class SettingsForm : Form
             if (!copy.IsDisposed) copy.Text = old;
         };
         var logs = Btn(T("btn_log"), () => { Directory.CreateDirectory(Log.Dir); Process.Start(new ProcessStartInfo(Log.Dir) { UseShellExecute = true }); });
-        var both = new Panel { Size = new Size(copy.Width + 10 + logs.Width, 36) };
-        copy.Location = new Point(Arabic ? logs.Width + 10 : 0, 0);
-        logs.Location = new Point(Arabic ? 0 : copy.Width + 10, 0);
+        var gap = Theme.S(10);
+        var both = new Panel { Size = new Size(copy.Width + gap + logs.Width, Theme.S(36)) };
+        copy.Location = new Point(Arabic ? logs.Width + gap : 0, 0);
+        logs.Location = new Point(Arabic ? 0 : copy.Width + gap, 0);
         both.Controls.Add(copy); both.Controls.Add(logs);
         yield return new Card(T("diag"), T("diag_d"), both);
         yield return new Card(T("license"), "MIT", null);
@@ -192,7 +193,7 @@ sealed class SettingsForm : Form
         var b = new Button
         {
             Text = text, FlatStyle = FlatStyle.Flat, BackColor = Theme.Chip, ForeColor = Theme.Text, Font = Theme.Body,
-            Height = 36, Width = TextRenderer.MeasureText(text, Theme.Body).Width + 36, Cursor = Cursors.Hand,
+            Height = Theme.S(36), Width = TextRenderer.MeasureText(text, Theme.Body).Width + Theme.S(36), Cursor = Cursors.Hand,
         };
         b.FlatAppearance.BorderSize = 0;
         b.Click += (_, _) => click();
