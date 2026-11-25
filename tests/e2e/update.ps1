@@ -24,6 +24,8 @@ $new = Ver
 Write-Host "after update: $new"
 Get-Content "$app\taswib.log" -ErrorAction SilentlyContinue | Select-Object -Last 20
 if (-not ($new -like "$Expect*")) { throw "not updated: still '$new'" }
+$end = (Get-Date).AddSeconds(30)  # restart lags the file swap by a moment
+while ((Get-Date) -lt $end -and -not (Get-Process Taswib -ErrorAction SilentlyContinue)) { Start-Sleep 1 }
 if (-not (Get-Process Taswib -ErrorAction SilentlyContinue)) { throw "updated but app did not restart" }
 Write-Host 'ok'
 Get-Process Taswib -ErrorAction SilentlyContinue | Stop-Process -Force
