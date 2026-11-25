@@ -294,14 +294,12 @@ static class Program
                 snap = Snapshot(); // every format, so images and files survive too
                 snapped = true;
                 Clipboard.Clear();
-                Press(Keys.ControlKey, Keys.C);
-                var sel = await Wait();
+                var sel = await Copy();
                 if (sel == null && cfg.Scope != Scope.SelectionOnly)
                 {
                     if (cfg.Scope == Scope.SelectionOrLine) Press(Keys.ShiftKey, Keys.Home);
                     else Press(Keys.ControlKey, Keys.A);
-                    Press(Keys.ControlKey, Keys.C);
-                    sel = await Wait();
+                    sel = await Copy();
                 }
                 if (sel != null)
                 {
@@ -413,11 +411,23 @@ static class Program
 
         static string? GetText() => Clipboard.ContainsText() ? Clipboard.GetText() : null;
 
-        static async Task<string?> Wait()
+        // Ctrl+C, then watch the clipboard sequence number: returns as soon as the copy lands.
+        // ponytail: no clipboard change within 250 ms = nothing selected; raise if slow apps get misread as empty.
+        static async Task<string?> Copy()
         {
-            for (var i = 0; i < 20; i++) { await Task.Delay(30); var t = GetText(); if (!string.IsNullOrEmpty(t)) return t; }
-            return null;
+            var seq = GetClipboardSequenceNumber();
+            Press(Keys.ControlKey, Keys.C);
+            var start = Environment.TickCount64;
+            while (true)
+            {
+                await Task.Delay(10);
+                var ms = Environment.TickCount64 - start;
+                if (GetClipboardSequenceNumber() != seq) { var t = GetText(); if (!string.IsNullOrEmpty(t)) return t; }
+                else if (ms >= 250) return null;
+                if (ms >= 600) return null;
+            }
         }
+        [DllImport("user32.dll")] static extern uint GetClipboardSequenceNumber();
 
         // Shortcut modifiers may still be physically down; wait so our Ctrl+C isn't mangled (max ~1s).
         static async Task ReleaseModifiers()
