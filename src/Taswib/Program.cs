@@ -223,11 +223,7 @@ static class Program
                         if (report != null) report(msg); else tray.Text = msg;
                     });
                     if (restart) { if (!silent) Say(T("restart")); mgr.ApplyUpdatesAndRestart(info); }
-                    else
-                    {
-                        mgr.WaitExitThenApplyUpdates(info); // periodic check: apply when the app is next closed, don't restart mid-use
-                        Say(T("ready", info.TargetFullRelease.Version), ToolTipIcon.Info, 5000);
-                    }
+                    else Say(T("ready", info.TargetFullRelease.Version), ToolTipIcon.Info, 5000); // Velopack applies a downloaded update on next start; WaitExitThenApplyUpdates would kill the app after 60 s
                     return;
                 }
                 using var http = new HttpClient();

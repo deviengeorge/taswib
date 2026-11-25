@@ -78,7 +78,7 @@ static class Strings
         ["taken"] = ("Shortcut {0} is taken. Pick another in Settings.", "الاختصار {0} واخده برنامج تاني. اختار غيره من الإعدادات."),
         ["dl"] = ("Downloading update… {0}%", "بنزّل التحديث… {0}%"),
         ["restart"] = ("Restarting to finish the update…", "هيتقفل ويفتح تاني عشان يكمّل التحديث…"),
-        ["ready"] = ("Update {0} is ready. It installs when you close Taswib.", "التحديث {0} جاهز. هيتثبّت أول ما تقفل تصويب."),
+        ["ready"] = ("Update {0} is ready. It installs next time Taswib starts.", "التحديث {0} جاهز. هيتثبّت أول ما تصويب يفتح تاني."),
         ["chk"] = ("Checking for updates…", "بدوّر على تحديث…"),
         ["newver_open"] = ("Version {0} is out. Opening the download page…", "فيه إصدار {0} جديد. بفتحلك صفحة التحميل…"),
         ["uptodate"] = ("You are up to date.", "معاك آخر إصدار."),
