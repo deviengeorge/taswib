@@ -2,6 +2,9 @@
 
 User-facing changes per release. Updates download as a small delta (~130 KB, ~60 KB on the `fd` channel).
 
+## 0.9.1 — 2026-11-26
+- Settings, Welcome and What's new show only the close button again (no minimize/maximize).
+
 ## 0.9.0 — 2026-11-26
 - New look for Settings, Welcome and What's new: sharp at any display scaling, including a second monitor with different scaling.
 - Arabic interface uses the Cairo font and a fully mirrored layout.

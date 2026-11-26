@@ -45,6 +45,9 @@
 
     <Style Selector="Window">
       <Setter Property="Background" Value="{DynamicResource Bg}"/>
+      <!-- dialogs: close button only, like the old fixed WinForms dialogs -->
+      <Setter Property="CanMinimize" Value="False"/>
+      <Setter Property="CanMaximize" Value="False"/>
       <!-- Segoe UI covers Arabic on Windows; the rest are fallbacks so Arabic letters always join -->
       <Setter Property="FontFamily" Value="Segoe UI, Noto Sans Arabic, Tahoma"/>
     </Style>
