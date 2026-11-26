@@ -2,8 +2,11 @@
 
 User-facing changes per release. Updates download as a small delta (~130 KB, ~60 KB on the `fd` channel).
 
-## 0.8.11 — 2026-11-25
+## 0.9.0 — 2026-11-26
+- New look for Settings, Welcome and What's new: sharp at any display scaling, including a second monitor with different scaling.
+- Arabic interface uses the Cairo font and a fully mirrored layout.
 - Faster fix: Taswib reacts as soon as the copy lands, and falls back to the current line sooner when nothing is selected.
+- "+ Line" works with NumLock on, and keys you type during a fix can no longer slip into the middle of it.
 
 ## 0.8.10 — 2026-11-25
 - If there is no internet when Taswib starts (e.g. Wi-Fi not connected yet at login), the update check retries every 30 minutes instead of waiting 4 hours.
