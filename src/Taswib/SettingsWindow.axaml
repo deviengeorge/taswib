@@ -1,0 +1,98 @@
+<Window xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:l="using:Taswib" x:Class="Taswib.SettingsWindow"
+        Title="{l:Tr title}" Icon="/taswib.ico" Width="790" Height="560" CanResize="False"
+        WindowStartupLocation="CenterScreen">
+  <DockPanel>
+    <!-- Sidebar -->
+    <StackPanel DockPanel.Dock="Left" Width="190" Background="{DynamicResource Side}">
+      <StackPanel Orientation="Horizontal" Margin="18,18,18,14" Spacing="10">
+        <Image Source="/Assets/logo.png" Width="30" Height="30"/>
+        <TextBlock Text="Taswib" FontWeight="SemiBold" VerticalAlignment="Center"/>
+      </StackPanel>
+      <ListBox x:Name="Nav" Classes="nav">
+        <ListBoxItem><StackPanel Orientation="Horizontal" Spacing="12"><PathIcon Data="{StaticResource ic_settings}"/><TextBlock Text="{l:Tr nav_general}"/></StackPanel></ListBoxItem>
+        <ListBoxItem><StackPanel Orientation="Horizontal" Spacing="12"><PathIcon Data="{StaticResource ic_keyboard}"/><TextBlock Text="{l:Tr nav_shortcuts}"/></StackPanel></ListBoxItem>
+        <ListBoxItem><StackPanel Orientation="Horizontal" Spacing="12"><PathIcon Data="{StaticResource ic_rename}"/><TextBlock Text="{l:Tr nav_fix}"/></StackPanel></ListBoxItem>
+        <ListBoxItem><StackPanel Orientation="Horizontal" Spacing="12"><PathIcon Data="{StaticResource ic_delete}"/><TextBlock Text="{l:Tr nav_clean}"/></StackPanel></ListBoxItem>
+        <ListBoxItem><StackPanel Orientation="Horizontal" Spacing="12"><PathIcon Data="{StaticResource ic_mail}"/><TextBlock Text="{l:Tr nav_contact}"/></StackPanel></ListBoxItem>
+        <ListBoxItem><StackPanel Orientation="Horizontal" Spacing="12"><PathIcon Data="{StaticResource ic_info}"/><TextBlock Text="{l:Tr nav_about}"/></StackPanel></ListBoxItem>
+      </ListBox>
+    </StackPanel>
+
+    <DockPanel Margin="28,22,28,12">
+      <TextBlock x:Name="PageTitle" DockPanel.Dock="Top" Classes="title" Margin="0,8,0,14"/>
+      <TextBlock x:Name="Saved" DockPanel.Dock="Bottom" Classes="sub" Height="20"/>
+
+      <Panel x:Name="Pages">
+        <!-- 0 General -->
+        <StackPanel>
+          <l:Card Title="{l:Tr enabled}" Desc="{l:Tr enabled_d}"><ToggleSwitch x:Name="Enabled"/></l:Card>
+          <l:Card Title="{l:Tr startup}" Desc="{l:Tr startup_d}"><ToggleSwitch x:Name="Startup"/></l:Card>
+          <l:Card Title="{l:Tr lang}" Desc="{l:Tr lang_d}">
+            <ListBox x:Name="Lang" Classes="seg"><ListBoxItem>English</ListBoxItem><ListBoxItem>العربية</ListBoxItem></ListBox>
+          </l:Card>
+        </StackPanel>
+
+        <!-- 1 Shortcuts -->
+        <StackPanel>
+          <l:Card Title="{l:Tr t_fixkey}" Desc="{l:Tr fixkey_d}">
+            <StackPanel Orientation="Horizontal" Spacing="8"><l:HotkeyBox x:Name="FixKey"/><Button x:Name="FixReset" Content="{l:Tr reset}"/></StackPanel>
+          </l:Card>
+          <l:Card Title="{l:Tr t_cleankey}" Desc="{l:Tr cleankey_d}">
+            <StackPanel Orientation="Horizontal" Spacing="8"><l:HotkeyBox x:Name="CleanKey" AllowClear="True"/><Button x:Name="CleanReset" Content="{l:Tr reset}"/></StackPanel>
+          </l:Card>
+        </StackPanel>
+
+        <!-- 2 Fixing -->
+        <StackPanel>
+          <l:Card Title="{l:Tr scope}" Desc="{l:Tr scope_d}">
+            <ListBox x:Name="ScopeSeg" Classes="seg">
+              <ListBoxItem Content="{l:Tr scopeS0}"/><ListBoxItem Content="{l:Tr scopeS1}"/><ListBoxItem Content="{l:Tr scopeS2}"/>
+            </ListBox>
+          </l:Card>
+          <l:Card Title="{l:Tr direction}" Desc="{l:Tr direction_d}">
+            <ListBox x:Name="DirSeg" Classes="seg">
+              <ListBoxItem Content="{l:Tr dirS0}"/><ListBoxItem>EN→AR</ListBoxItem><ListBoxItem>AR→EN</ListBoxItem>
+            </ListBox>
+          </l:Card>
+          <l:Card Title="{l:Tr switch}" Desc="{l:Tr switch_d}"><ToggleSwitch x:Name="Switch"/></l:Card>
+          <l:Card Title="{l:Tr restore}" Desc="{l:Tr restore_d}"><ToggleSwitch x:Name="Restore"/></l:Card>
+          <l:Card Title="{l:Tr sound}" Desc="{l:Tr sound_d}"><ToggleSwitch x:Name="Sound"/></l:Card>
+        </StackPanel>
+
+        <!-- 3 Cleaning -->
+        <StackPanel>
+          <l:Card Title="{l:Tr punct_t}" Desc="{l:Tr punct_d}"><ToggleSwitch x:Name="Punct"/></l:Card>
+          <l:Card Title="{l:Tr norm_t}" Desc="{l:Tr norm_d}"><ToggleSwitch x:Name="Norm"/></l:Card>
+        </StackPanel>
+
+        <!-- 4 Contact -->
+        <StackPanel x:Name="ContactPage">
+          <Border Background="{DynamicResource CardBg}" BorderBrush="{DynamicResource Line}" BorderThickness="1"
+                  CornerRadius="10" Padding="18" Margin="0,0,0,10">
+            <DockPanel>
+              <Ellipse DockPanel.Dock="Left" Width="92" Height="92" Stroke="{DynamicResource Accent}" StrokeThickness="2" Margin="0,0,18,0">
+                <Ellipse.Fill><ImageBrush Source="/Assets/contact.png" Stretch="UniformToFill"/></Ellipse.Fill>
+              </Ellipse>
+              <StackPanel VerticalAlignment="Center" Spacing="4">
+                <TextBlock x:Name="ContactName" FontSize="18" FontWeight="SemiBold"/>
+                <TextBlock Classes="sub" Text="{l:Tr c_sub}"/>
+                <TextBlock Text="{l:Tr c_intro}" TextWrapping="Wrap" Margin="0,6,0,0"/>
+              </StackPanel>
+            </DockPanel>
+          </Border>
+        </StackPanel>
+
+        <!-- 5 About -->
+        <StackPanel>
+          <l:Card x:Name="VersionCard" Desc="{l:Tr about_d}"><Button x:Name="Update" Content="{l:Tr update}"/></l:Card>
+          <l:Card Title="{l:Tr github}" Desc="github.com/deviengeorge/taswib"><Button x:Name="Github" Content="{l:Tr open}"/></l:Card>
+          <l:Card Title="{l:Tr diag}" Desc="{l:Tr diag_d}">
+            <StackPanel Orientation="Horizontal" Spacing="10"><Button x:Name="CopyReport" Content="{l:Tr btn_copy}"/><Button x:Name="OpenLogs" Content="{l:Tr btn_log}"/></StackPanel>
+          </l:Card>
+          <l:Card Title="{l:Tr license}" Desc="MIT"/>
+        </StackPanel>
+      </Panel>
+    </DockPanel>
+  </DockPanel>
+</Window>

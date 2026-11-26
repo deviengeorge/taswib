@@ -31,6 +31,8 @@ static class Program
         AppDomain.CurrentDomain.UnhandledException += (_, e) => Log.Write("fatal", (Exception)e.ExceptionObject);
         var v = Assembly.GetExecutingAssembly().GetName().Version!;
         Log.Write($"start {v.Major}.{v.Minor}.{v.Build} | {System.Runtime.InteropServices.RuntimeInformation.OSDescription}");
+        // Avalonia draws the windows; WinForms' message loop below also pumps Avalonia's messages.
+        Ui.Setup();
         var ctx = new TrayContext(wake);
         Log.Write($"ready in {(DateTime.Now - Process.GetCurrentProcess().StartTime).TotalMilliseconds:0} ms"); // process start to tray icon up
         Application.Run(ctx);
@@ -66,7 +68,7 @@ static class Program
             if (Array.IndexOf(args, "--settings") >= 0) // used by the CI screenshots; handy as a shortcut too
             {
                 var pi = Array.IndexOf(args, "--page");
-                if (pi >= 0 && pi + 1 < args.Length && int.TryParse(args[pi + 1], out var pg)) SettingsForm.LastPage = Math.Clamp(pg, 0, 5);
+                if (pi >= 0 && pi + 1 < args.Length && int.TryParse(args[pi + 1], out var pg)) SettingsWindow.LastPage = Math.Clamp(pg, 0, 5);
                 After(800, ShowSettings);
             }
             else if (Settings.FirstRun) After(800, ShowWelcome); // once the message loop is running
@@ -83,24 +85,21 @@ static class Program
         static Version Current { get { var v = Assembly.GetExecutingAssembly().GetName().Version!; return new Version(v.Major, v.Minor, v.Build); } }
 
         // Only releases that bring a new feature have a WhatsNew entry; everything else stays silent.
-        void ShowNews()
+        async void ShowNews()
         {
             var s = Settings.Current;
             var cur = Current.ToString();
             if (WhatsNew.Pending(Current, s.LastNewsVersion) is { } n)
-            {
-                using var f = new NewsForm(n.V, Arabic ? n.Ar : n.En);
-                f.ShowDialog();
-            }
+                await Ui.ShowAsync(new NewsWindow(n.V, Arabic ? n.Ar : n.En));
             if (s.LastNewsVersion != cur) { s.LastNewsVersion = cur; s.Save(); }
         }
 
-        void ShowWelcome()
+        async void ShowWelcome()
         {
             Settings.Current.LastNewsVersion = Current.ToString(); // new installs skip old news
             Settings.Current.Save(); // creates settings.json, so the welcome never shows again
-            using var w = new WelcomeForm(Settings.Current.Hotkey);
-            w.ShowDialog();
+            var w = new WelcomeWindow(Settings.Current.Hotkey);
+            await Ui.ShowAsync(w);
             if (w.OpenSettings) ShowSettings();
         }
 
@@ -171,23 +170,22 @@ static class Program
             }
         }
 
-        void ShowSettings()
+        async void ShowSettings()
         {
             if (settingsOpen) { openForm?.Activate(); return; } // already open: bring it to the front
             settingsOpen = true;
             win.Unregister(); // else the global hotkey swallows the key you are trying to record
-            SettingsForm f;
+            SettingsWindow f;
             do
             {
-                f = openForm = new SettingsForm(Settings.Current, IsStartup(), (s, startup) => { s.Save(); SetStartup(startup); ApplyHotkey(); }, report => CheckUpdate(report: report));
-                f.ShowDialog();
-                f.Dispose();
+                f = openForm = new SettingsWindow(Settings.Current, IsStartup(), (s, startup) => { s.Save(); SetStartup(startup); ApplyHotkey(); }, report => CheckUpdate(report: report));
+                await Ui.ShowAsync(f);
             } while (f.Reopen);
-            settingsOpen = false;
+            settingsOpen = false; openForm = null;
             ApplyHotkey();
         }
         bool settingsOpen;
-        SettingsForm? openForm;
+        SettingsWindow? openForm;
 
         static bool IsStartup() => Registry.CurrentUser.OpenSubKey(RunKey)?.GetValue("Taswib") != null;
 

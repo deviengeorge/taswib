@@ -11,8 +11,16 @@
     <AssemblyName>Taswib</AssemblyName>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+    <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
+    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
   </PropertyGroup>
-  <ItemGroup><EmbeddedResource Include="contact.png" /></ItemGroup>
-  <ItemGroup><PackageReference Include="Velopack" Version="1.2.161" /></ItemGroup>
+  <ItemGroup><AvaloniaResource Include="Assets/**" /><AvaloniaResource Include="taswib.ico" /></ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Velopack" Version="1.2.161" />
+    <PackageReference Include="Avalonia" Version="11.3.23" />
+    <PackageReference Include="Avalonia.Win32" Version="11.3.23" />
+    <PackageReference Include="Avalonia.Skia" Version="11.3.23" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.23" />
+  </ItemGroup>
   <ItemGroup><ProjectReference Include="..\Taswib.Core\Taswib.Core.csproj" /></ItemGroup>
 </Project>

@@ -66,9 +66,9 @@ Prefer no install? Grab the portable **`Taswib.exe`** from the same page.
 
 ## Settings
 
-![settings](docs/settings.png)
+![Settings in English and Arabic, light and dark](docs/mockup.png)
 
-Click the tray icon. Changes save instantly. Light and dark follow Windows. Real screenshots of every page: [`docs/screens`](docs/screens) (captured automatically from a Windows run in CI).
+Click the tray icon. Changes save instantly. Light and dark follow Windows. Screenshots of every page: [`docs/screens`](docs/screens) (rendered from the app's own window layout).
 
 | Page | What's inside |
 | --- | --- |

@@ -1,295 +1,260 @@
-using System.Drawing.Drawing2D;
-using Microsoft.Win32;
+using System.Diagnostics;
+using System.Reflection;
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Input;
+using Avalonia.Markup.Xaml;
+using Avalonia.Media;
+using Avalonia.Threading;
+using static Taswib.Strings;
+// WinForms is referenced too (tray, clipboard); these aliases pick the Avalonia type for the names both define.
+using Window = Avalonia.Controls.Window;
+using Button = Avalonia.Controls.Button;
+using ListBox = Avalonia.Controls.ListBox;
+using Border = Avalonia.Controls.Border;
+using TextBlock = Avalonia.Controls.TextBlock;
+using KeyEventArgs = Avalonia.Input.KeyEventArgs;
+using FlowDirection = Avalonia.Media.FlowDirection;
+using Keys = System.Windows.Forms.Keys;
+using Application = Avalonia.Application;
+using FontFamily = Avalonia.Media.FontFamily;
 
 namespace Taswib;
 
-static class Theme
+public partial class App : Application
 {
-    public static readonly bool Dark = IsDark();
-    public static readonly Color Bg = Dark ? C(32, 32, 32) : C(243, 243, 245);
-    public static readonly Color Side = Dark ? C(24, 24, 24) : C(234, 234, 238);
-    public static readonly Color Card = Dark ? C(44, 44, 47) : Color.White;
-    public static readonly Color Border = Dark ? C(66, 66, 70) : C(226, 226, 231);
-    public static readonly Color Chip = Dark ? C(62, 62, 67) : C(238, 238, 243);
-    public static readonly Color Text = Dark ? C(242, 242, 244) : C(28, 28, 30);
-    public static readonly Color Sub = Dark ? C(165, 165, 172) : C(105, 105, 114);
-    public static readonly Color Accent = C(79, 70, 229);
-    public static readonly Font Body = new("Segoe UI", 10f);
-    public static readonly Font Small = new("Segoe UI", 9f);
-    public static readonly Font Semi = new("Segoe UI Semibold", 10f);
-    public static readonly Font Title = new("Segoe UI Semibold", 18f);
-    public static readonly Font Name = new("Segoe UI Semibold", 14f);
-
-    static Color C(int r, int g, int b) => Color.FromArgb(r, g, b);
-
-    // ponytail: one factor from the system DPI (manifest says SystemAware); a second monitor with other scaling
-    // gets bitmap-stretched by Windows. PerMonitorV2 needs re-scaling on WM_DPICHANGED.
-    public static readonly float F = SystemDpi() / 96f;
-    static float SystemDpi() { using var g = Graphics.FromHwnd(IntPtr.Zero); return g.DpiX; }
-    /// <summary>96-DPI pixels to real pixels.</summary>
-    public static int S(int v) => (int)Math.Round(v * F);
-
-    static bool IsDark()
-    {
-        try { return Registry.GetValue(@"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize", "AppsUseLightTheme", 1) is int v && v == 0; }
-        catch { return false; }
-    }
-
-    public static GraphicsPath Round(RectangleF r, float rad)
-    {
-        var p = new GraphicsPath();
-        var d = rad * 2;
-        p.AddArc(r.X, r.Y, d, d, 180, 90);
-        p.AddArc(r.Right - d, r.Y, d, d, 270, 90);
-        p.AddArc(r.Right - d, r.Bottom - d, d, d, 0, 90);
-        p.AddArc(r.X, r.Bottom - d, d, d, 90, 90);
-        p.CloseFigure();
-        return p;
-    }
-
-    // Arabic is laid out by hand (not WinForms mirroring), so text just needs right alignment + RTL reading order.
-    public static TextFormatFlags Flags(bool center = false)
-    {
-        var f = TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding | TextFormatFlags.EndEllipsis;
-        if (center) return f | TextFormatFlags.HorizontalCenter;
-        return Strings.Arabic ? f | TextFormatFlags.Right | TextFormatFlags.RightToLeft : f;
-    }
+    public override void Initialize() => AvaloniaXamlLoader.Load(this);
 }
 
-abstract class Base : Control
+/// <summary>XAML text lookup: <c>Text="{l:Tr enabled}"</c>.</summary>
+public sealed class Tr : Avalonia.Markup.Xaml.MarkupExtension
 {
-    protected Base() { DoubleBuffered = true; ResizeRedraw = true; }
+    public Tr(string key) => Key = key;
+    public string Key { get; set; }
+    public override object ProvideValue(IServiceProvider _) => T(Key);
 }
 
-sealed class Toggle : Base
+/// <summary>Settings row: title and description, with a control (Content) on the far side. Look is in App.axaml.</summary>
+public sealed class Card : ContentControl
 {
-    bool on;
-    public event EventHandler? Changed;
-    public bool Checked
-    {
-        get => on;
-        set { if (on == value) return; on = value; Invalidate(); Changed?.Invoke(this, EventArgs.Empty); }
-    }
-    public Toggle(bool initial) { on = initial; Size = new Size(Theme.S(46), Theme.S(26)); Cursor = Cursors.Hand; }
-    protected override void OnPaint(PaintEventArgs e)
-    {
-        var g = e.Graphics; g.Clear(Theme.Card); g.SmoothingMode = SmoothingMode.AntiAlias;
-        using var path = Theme.Round(new RectangleF(1, 1, Width - 2, Height - 2), (Height - 2) / 2f);
-        using var fill = new SolidBrush(on ? Theme.Accent : (Theme.Dark ? Color.FromArgb(90, 90, 96) : Color.FromArgb(190, 190, 198)));
-        g.FillPath(fill, path);
-        int m = Theme.S(5), d = Height - 2 * m;
-        g.FillEllipse(Brushes.White, on ? Width - d - m : m, m, d, d);
-    }
-    protected override void OnClick(EventArgs e) { Checked = !on; base.OnClick(e); }
+    public static readonly StyledProperty<string> TitleProperty = AvaloniaProperty.Register<Card, string>(nameof(Title), "");
+    public static readonly StyledProperty<string> DescProperty = AvaloniaProperty.Register<Card, string>(nameof(Desc), "");
+    public string Title { get => GetValue(TitleProperty); set => SetValue(TitleProperty, value); }
+    public string Desc { get => GetValue(DescProperty); set => SetValue(DescProperty, value); }
 }
 
-sealed class Segmented : Base
+/// <summary>Click, then press a shortcut. Values use WinForms <see cref="Keys"/> names, as RegisterHotKey needs them.</summary>
+public sealed class HotkeyBox : Border
 {
-    readonly string[] items;
-    readonly int[] w;
-    public int Selected { get; private set; }
-    public event EventHandler? Changed;
-
-    public Segmented(string[] items, int selected)
-    {
-        this.items = items; Selected = selected; Cursor = Cursors.Hand;
-        w = items.Select(i => TextRenderer.MeasureText(i, Theme.Body).Width + Theme.S(30)).ToArray();
-        Size = new Size(w.Sum() + Theme.S(8), Theme.S(36));
-    }
-    protected override void OnPaint(PaintEventArgs e)
-    {
-        var g = e.Graphics; g.Clear(Theme.Card); g.SmoothingMode = SmoothingMode.AntiAlias;
-        using (var bg = Theme.Round(new RectangleF(0, 0, Width - 1, Height - 1), Theme.S(9))) using (var b = new SolidBrush(Theme.Chip)) g.FillPath(b, bg);
-        var x = Theme.S(4);
-        for (var i = 0; i < items.Length; i++)
-        {
-            var r = new Rectangle(x, Theme.S(4), w[i], Height - Theme.S(8));
-            if (i == Selected) { using var p = Theme.Round(r, Theme.S(7)); using var b = new SolidBrush(Theme.Accent); g.FillPath(b, p); }
-            TextRenderer.DrawText(g, items[i], Theme.Body, r, i == Selected ? Color.White : Theme.Text, Theme.Flags(center: true));
-            x += w[i];
-        }
-    }
-    protected override void OnMouseUp(MouseEventArgs e)
-    {
-        var x = Theme.S(4);
-        for (var i = 0; i < items.Length; i++)
-        {
-            if (e.X >= x && e.X < x + w[i]) { if (i != Selected) { Selected = i; Invalidate(); Changed?.Invoke(this, EventArgs.Empty); } return; }
-            x += w[i];
-        }
-    }
-}
-
-sealed class HotkeyBox : Base
-{
-    readonly bool allowClear;
+    readonly TextBlock text = new();
+    readonly DispatcherTimer hintTimer = new() { Interval = TimeSpan.FromMilliseconds(2200) };
     bool captured;
-    string hint = "";
-    readonly System.Windows.Forms.Timer hintTimer = new() { Interval = 2200 };
-    public string Value { get; private set; }
+    public bool AllowClear { get; set; }
+    public string Value { get; private set; } = "";
     public event Action<string>? Changed;
 
-    public HotkeyBox(string value, bool allowClear)
+    public HotkeyBox()
     {
-        Value = value; this.allowClear = allowClear;
-        hintTimer.Tick += (_, _) => { hint = ""; hintTimer.Stop(); Invalidate(); };
-        SetStyle(ControlStyles.Selectable, true); TabStop = true; Cursor = Cursors.Hand; Size = new Size(Theme.S(190), Theme.S(36));
+        Focusable = true; Child = text;
+        hintTimer.Tick += (_, _) => { hintTimer.Stop(); Show(); };
     }
-    protected override void OnPaint(PaintEventArgs e)
+
+    public void Init(string v) { Value = v; Show(); }
+    public void Set(string v) { Value = v; captured = true; Show(); Changed?.Invoke(v); }
+
+    void Show(string? hint = null)
     {
-        var g = e.Graphics; g.Clear(Theme.Card); g.SmoothingMode = SmoothingMode.AntiAlias;
-        using var path = Theme.Round(new RectangleF(1, 1, Width - 3, Height - 3), Theme.S(9));
-        using (var b = new SolidBrush(Theme.Chip)) g.FillPath(b, path);
-        using (var pen = new Pen(Focused ? Theme.Accent : Theme.Border, Focused ? 2f : 1f)) g.DrawPath(pen, path);
-        var text = Focused && !captured ? "…" : (Value == "" ? "—" : Value); // "…" only until a key is pressed
-        if (hint != "") TextRenderer.DrawText(g, hint, Theme.Small, ClientRectangle, Color.FromArgb(230, 90, 90), Theme.Flags(center: true));
-        else TextRenderer.DrawText(g, text, Theme.Semi, ClientRectangle, Theme.Text, Theme.Flags(center: true));
+        text.Classes.Set("hint", hint != null);
+        text.Text = hint ?? (IsFocused && !captured ? "…" : Value == "" ? "—" : Value); // "…" only until a key is pressed
     }
-    protected override void OnMouseDown(MouseEventArgs e) { Focus(); base.OnMouseDown(e); }
-    protected override void OnGotFocus(EventArgs e) { captured = false; Invalidate(); base.OnGotFocus(e); }
-    protected override void OnLostFocus(EventArgs e) { Invalidate(); base.OnLostFocus(e); }
-    protected override bool IsInputKey(Keys keyData) => true;
-    protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
+
+    protected override void OnPointerPressed(PointerPressedEventArgs e) { Focus(); e.Handled = true; }
+    protected override void OnGotFocus(GotFocusEventArgs e) { captured = false; Show(); base.OnGotFocus(e); }
+    protected override void OnLostFocus(Avalonia.Interactivity.RoutedEventArgs e) { Show(); base.OnLostFocus(e); }
+
+    protected override void OnKeyDown(KeyEventArgs e)
     {
-        if (!Focused) return base.ProcessCmdKey(ref msg, keyData);
-        var key = keyData & Keys.KeyCode; var mods = keyData & Keys.Modifiers;
-        if (key is Keys.ControlKey or Keys.ShiftKey or Keys.Menu or Keys.LWin or Keys.RWin) return true; // wait for the real key
-        if (key == Keys.Delete && mods == 0 && allowClear) Set("");
-        else if (key != Keys.Escape && key != Keys.Tab)
+        if (e.Key == Key.Tab) { base.OnKeyDown(e); return; } // Tab still moves focus away
+        e.Handled = true;
+        if (e.Key is Key.LeftCtrl or Key.RightCtrl or Key.LeftShift or Key.RightShift or Key.LeftAlt or Key.RightAlt or Key.LWin or Key.RWin or Key.Escape) return; // wait for the real key
+        var m = e.KeyModifiers;
+        if (e.Key == Key.Delete && m == KeyModifiers.None && AllowClear) { Set(""); return; }
+        // ponytail: Avalonia and WinForms key names match for the keys people bind (letters, digits, F-keys, Insert, Pause...); an unmatched one beeps.
+        if (!Enum.TryParse<Keys>(e.Key.ToString(), out var key)) { System.Media.SystemSounds.Beep.Play(); return; }
+        if (m == KeyModifiers.None && !BareOk(key))
         {
-            if (mods == 0 && !BareOk(key)) { System.Media.SystemSounds.Beep.Play(); hint = Strings.T("hk_bare"); hintTimer.Stop(); hintTimer.Start(); Invalidate(); } // a bare letter would be hijacked system-wide; keep old value
-            else Set(Settings.FormatHotkey(mods, key));
+            System.Media.SystemSounds.Beep.Play(); // a bare letter would be hijacked system-wide; keep old value
+            Show(T("hk_bare")); hintTimer.Stop(); hintTimer.Start();
+            return;
         }
-        return key != Keys.Tab; // Tab still moves focus away
+        var mods = (m.HasFlag(KeyModifiers.Control) ? Keys.Control : 0) | (m.HasFlag(KeyModifiers.Shift) ? Keys.Shift : 0) | (m.HasFlag(KeyModifiers.Alt) ? Keys.Alt : 0);
+        Set(Settings.FormatHotkey(mods, key));
     }
+
     // Keys that are safe to own globally with no modifier.
     static bool BareOk(Keys k) => (k >= Keys.F1 && k <= Keys.F24)
         || k is Keys.Insert or Keys.Pause or Keys.Scroll or Keys.Home or Keys.End or Keys.PageUp or Keys.PageDown or Keys.Delete;
-    public void Set(string v) { Value = v; captured = true; Invalidate(); Changed?.Invoke(v); }
 }
 
-sealed class Card : Panel
+static class Ui
 {
-    readonly string title, desc;
-    readonly Control? right;
+    // Bundled (OFL), so Arabic looks the same on every PC; English keeps Segoe UI.
+    public static readonly FontFamily ArabicFont = new($"avares://{typeof(Ui).Assembly.GetName().Name}/Assets/Fonts#Cairo");
 
-    public Card(string title, string desc, Control? right)
+    public static void Setup() => AppBuilder.Configure<App>().UseWin32().UseSkia().SetupWithoutStarting();
+
+    /// <summary>Show a window and wait until it closes (the tray app has no owner window for ShowDialog).</summary>
+    public static Task ShowAsync(Window w)
     {
-        this.title = title; this.desc = desc; this.right = right;
-        DoubleBuffered = true; Size = new Size(Theme.S(534), Theme.S(66)); Margin = new Padding(0, 0, 0, Theme.S(10));
-        if (right != null) Controls.Add(right);
+        var done = new TaskCompletionSource();
+        w.Closed += (_, _) => done.TrySetResult();
+        if (Arabic) { w.FlowDirection = FlowDirection.RightToLeft; w.FontFamily = ArabicFont; w.Classes.Add("ar"); } // mirrors the whole layout
+        w.Show(); w.Activate();
+        return done.Task;
     }
-    protected override void OnLayout(LayoutEventArgs e)
-    {
-        base.OnLayout(e);
-        if (right != null) right.Location = new Point(Strings.Arabic ? Theme.S(18) : Width - Theme.S(18) - right.Width, (Height - right.Height) / 2);
-    }
-    protected override void OnPaint(PaintEventArgs e)
-    {
-        var g = e.Graphics; g.Clear(Theme.Bg); g.SmoothingMode = SmoothingMode.AntiAlias;
-        using (var p = Theme.Round(new RectangleF(0.5f, 0.5f, Width - 1.5f, Height - 1.5f), Theme.S(10)))
-        {
-            using var b = new SolidBrush(Theme.Card); g.FillPath(b, p);
-            using var pen = new Pen(Theme.Border); g.DrawPath(pen, p);
-        }
-        var rw = right == null ? 0 : right.Width + Theme.S(16);
-        var x = Strings.Arabic ? Theme.S(18) + rw : Theme.S(18);
-        var w = Width - Theme.S(36) - rw;
-        var t = desc == "" ? new Rectangle(x, 0, w, Height) : new Rectangle(x, Theme.S(11), w, Theme.S(24));
-        TextRenderer.DrawText(g, title, Theme.Semi, t, Theme.Text, Theme.Flags());
-        if (desc != "") TextRenderer.DrawText(g, desc, Theme.Small, new Rectangle(x, Theme.S(35), w, Theme.S(22)), Theme.Sub, Theme.Flags());
-    }
+
+    public static void Open(string url) => Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
 }
 
-sealed class NavItem : Base
+public partial class SettingsWindow : Window
 {
-    readonly string text;
-    bool hover;
-    public bool Selected { get; set; }
-    readonly char glyph;
-    public NavItem(string text, char glyph) { this.text = text; this.glyph = glyph; Size = new Size(Theme.S(190), Theme.S(44)); Cursor = Cursors.Hand; }
-    protected override void OnPaint(PaintEventArgs e)
+    internal static int LastPage;
+    readonly Settings s;
+    readonly Action<Settings, bool> apply;
+    bool startupOn;
+    readonly DispatcherTimer savedTimer = new() { Interval = TimeSpan.FromMilliseconds(1500) };
+
+    /// <summary>Set when the language changed: the caller reopens the window so it is laid out for the new language.</summary>
+    public bool Reopen { get; private set; }
+
+    public SettingsWindow() : this(new Settings(), false, (_, _) => { }, _ => Task.CompletedTask) { } // XAML previewer
+
+    public SettingsWindow(Settings s, bool startupOn, Action<Settings, bool> apply, Func<Action<string>, Task> checkUpdate)
     {
-        var g = e.Graphics; g.Clear(Theme.Side); g.SmoothingMode = SmoothingMode.AntiAlias;
-        if (Selected || hover)
+        this.s = s; this.startupOn = startupOn; this.apply = apply;
+        InitializeComponent();
+        savedTimer.Tick += (_, _) => { savedTimer.Stop(); Saved.Text = ""; };
+
+        Nav.SelectionChanged += (_, _) => ShowPage(Nav.SelectedIndex);
+        Nav.SelectedIndex = LastPage;
+
+        Tog(Enabled, s.Enabled, v => s.Enabled = v);
+        Tog(Startup, startupOn, v => this.startupOn = v);
+        Seg(Lang, s.Language == "ar" ? 1 : 0, i => { s.Language = i == 1 ? "ar" : "en"; Reopen = true; Dispatcher.UIThread.Post(Close); });
+
+        FixKey.Init(s.Hotkey); FixKey.Changed += k => { s.Hotkey = k; Save(); };
+        CleanKey.Init(s.CleanHotkey); CleanKey.Changed += k => { s.CleanHotkey = k; Save(); };
+        FixReset.Click += (_, _) => FixKey.Set(new Settings().Hotkey);
+        CleanReset.Click += (_, _) => CleanKey.Set(new Settings().CleanHotkey);
+
+        Seg(ScopeSeg, (int)s.Scope, i => s.Scope = (Scope)i);
+        Seg(DirSeg, (int)s.Direction, i => s.Direction = (Taswib.Core.Direction)i);
+        Tog(Switch, s.SwitchLayout, v => s.SwitchLayout = v);
+        Tog(Restore, s.RestoreClipboard, v => s.RestoreClipboard = v);
+        Tog(Sound, s.SoundOnFix, v => s.SoundOnFix = v);
+        Tog(Punct, s.CleanPunctuation, v => s.CleanPunctuation = v);
+        Tog(Norm, s.CleanNormalize, v => s.CleanNormalize = v);
+
+        ContactName.Text = Links.Name;
+        ContactRow("c_email", Links.Email, "btn_send", "mailto:" + Links.Email);
+        ContactRow("c_whatsapp", Links.PhoneDisplay, "btn_chat", Links.WhatsApp);
+        ContactRow("c_linkedin", Links.LinkedInShort, "open", Links.LinkedIn);
+        if (Links.TelegramUser != "") ContactRow("c_telegram", "@" + Links.TelegramUser, "btn_chat", "https://t.me/" + Links.TelegramUser);
+
+        var ver = Assembly.GetExecutingAssembly().GetName().Version!;
+        VersionCard.Title = $"Taswib {ver.Major}.{ver.Minor}.{ver.Build}";
+        Update.Click += async (_, _) =>
         {
-            using var p = Theme.Round(new RectangleF(Theme.S(10), Theme.S(4), Width - Theme.S(20), Height - Theme.S(8)), Theme.S(8));
-            using var b = new SolidBrush(Selected ? Theme.Chip : Color.FromArgb(40, Theme.Chip));
-            g.FillPath(b, p);
-        }
-        if (Selected)
+            var old = Update.Content;
+            Update.IsEnabled = false;
+            await checkUpdate(msg => Dispatcher.UIThread.Post(() => Update.Content = msg));
+            await Task.Delay(4000);
+            Update.Content = old; Update.IsEnabled = true;
+        };
+        Github.Click += (_, _) => Ui.Open("https://github.com/deviengeorge/taswib");
+        CopyReport.Click += async (_, _) =>
         {
-            var bx = Strings.Arabic ? Width - Theme.S(14) : Theme.S(10);
-            using var b = new SolidBrush(Theme.Accent);
-            g.FillRectangle(b, bx, Theme.S(14), Theme.S(3), Height - Theme.S(28));
-        }
-        var ar = Strings.Arabic;
-        TextRenderer.DrawText(g, glyph.ToString(), Icons.Font, new Rectangle(ar ? Width - Theme.S(50) : Theme.S(28), 0, Theme.S(22), Height), Selected ? Theme.Accent : Theme.Sub, Theme.Flags(center: true));
-        TextRenderer.DrawText(g, text, Selected ? Theme.Semi : Theme.Body, new Rectangle(ar ? Theme.S(20) : Theme.S(58), 0, Width - Theme.S(78), Height), Theme.Text, Theme.Flags());
+            System.Windows.Forms.Clipboard.SetText(Log.Report());
+            var old = CopyReport.Content; CopyReport.Content = T("copied");
+            await Task.Delay(1500);
+            CopyReport.Content = old;
+        };
+        OpenLogs.Click += (_, _) => { Directory.CreateDirectory(Log.Dir); Ui.Open(Log.Dir); };
     }
-    protected override void OnMouseEnter(EventArgs e) { hover = true; Invalidate(); base.OnMouseEnter(e); }
-    protected override void OnMouseLeave(EventArgs e) { hover = false; Invalidate(); base.OnMouseLeave(e); }
+
+    void ShowPage(int page)
+    {
+        if (page < 0) return;
+        LastPage = page;
+        for (var i = 0; i < Pages.Children.Count; i++) Pages.Children[i].IsVisible = i == page;
+        PageTitle.Text = ((TextBlock)((StackPanel)((ListBoxItem)Nav.Items[page]!).Content!).Children[1]).Text;
+    }
+
+    void Save()
+    {
+        apply(s, startupOn);
+        Saved.Text = T("saved");
+        savedTimer.Stop(); savedTimer.Start();
+    }
+
+    // Initial value first, then listen: setting it must not count as a change.
+    void Tog(ToggleSwitch t, bool v, Action<bool> set)
+    {
+        t.IsChecked = v;
+        t.IsCheckedChanged += (_, _) => { set(t.IsChecked == true); Save(); };
+    }
+
+    void Seg(ListBox l, int selected, Action<int> set)
+    {
+        l.SelectedIndex = selected;
+        l.SelectionChanged += (_, _) => { if (l.SelectedIndex >= 0) { set(l.SelectedIndex); Save(); } };
+    }
+
+    void ContactRow(string title, string value, string btn, string url)
+    {
+        var b = new Button { Content = T(btn) };
+        b.Click += (_, _) => Ui.Open(url);
+        ContactPage.Children.Add(new Card { Title = T(title), Desc = value, Content = b });
+    }
 }
 
-sealed class Brand : Base
+public partial class WelcomeWindow : Window
 {
-    readonly Bitmap icon;
-    public Brand() { Size = new Size(Theme.S(190), Theme.S(64)); icon = Icon.ExtractAssociatedIcon(Environment.ProcessPath!)!.ToBitmap(); }
-    protected override void OnPaint(PaintEventArgs e)
+    public bool OpenSettings { get; private set; }
+    public WelcomeWindow() : this("Insert") { }
+    public WelcomeWindow(string hotkey)
     {
-        var g = e.Graphics; g.Clear(Theme.Side); g.InterpolationMode = InterpolationMode.HighQualityBicubic;
-        var ix = Strings.Arabic ? Width - Theme.S(48) : Theme.S(18);
-        g.DrawImage(icon, new Rectangle(ix, Theme.S(17), Theme.S(30), Theme.S(30)));
-        var tr = Strings.Arabic ? new Rectangle(Theme.S(10), 0, Width - Theme.S(68), Height) : new Rectangle(Theme.S(58), 0, Width - Theme.S(70), Height);
-        TextRenderer.DrawText(g, "Taswib", Theme.Semi, tr, Theme.Text, Theme.Flags());
+        InitializeComponent();
+        Body.Text = T("w_body", hotkey);
+        OpenSettingsBtn.Click += (_, _) => { OpenSettings = true; Close(); };
+        Ok.Click += (_, _) => Close();
+        Opened += (_, _) => { Sample.Focus(); Sample.SelectAll(); }; // selected, so the shortcut works immediately
     }
 }
 
-sealed class Profile : Base
+public partial class NewsWindow : Window
 {
-    readonly Bitmap photo;
-    readonly string name, sub, intro;
-
-    public Profile(Bitmap photo, string name, string sub, string intro)
+    public NewsWindow() : this(new Version(0, 0), "") { }
+    public NewsWindow(Version v, string body)
     {
-        this.photo = photo; this.name = name; this.sub = sub; this.intro = intro;
-        Size = new Size(Theme.S(534), Theme.S(132)); Margin = new Padding(0, 0, 0, Theme.S(10));
-    }
-    protected override void OnPaint(PaintEventArgs e)
-    {
-        var g = e.Graphics; g.Clear(Theme.Bg); g.SmoothingMode = SmoothingMode.AntiAlias; g.InterpolationMode = InterpolationMode.HighQualityBicubic;
-        using (var p = Theme.Round(new RectangleF(0.5f, 0.5f, Width - 1.5f, Height - 1.5f), Theme.S(10)))
-        {
-            using var b = new SolidBrush(Theme.Card); g.FillPath(b, p);
-            using var pen = new Pen(Theme.Border); g.DrawPath(pen, p);
-        }
-        int d = Theme.S(92), m = Theme.S(18);
-        var px = Strings.Arabic ? Width - m - d : m;
-        var circle = new Rectangle(px, (Height - d) / 2, d, d);
-        using (var cp = new GraphicsPath()) { cp.AddEllipse(circle); g.SetClip(cp); g.DrawImage(photo, circle); g.ResetClip(); }
-        using (var ring = new Pen(Theme.Accent, 2f)) g.DrawEllipse(ring, circle);
-
-        var w = Width - d - 3 * m;
-        var x = Strings.Arabic ? m : m + d + m;
-        TextRenderer.DrawText(g, name, Theme.Name, new Rectangle(x, Theme.S(20), w, Theme.S(28)), Theme.Text, Theme.Flags());
-        TextRenderer.DrawText(g, sub, Theme.Small, new Rectangle(x, Theme.S(50), w, Theme.S(22)), Theme.Sub, Theme.Flags());
-        var wrap = TextFormatFlags.WordBreak | TextFormatFlags.NoPadding | (Strings.Arabic ? TextFormatFlags.Right | TextFormatFlags.RightToLeft : 0);
-        TextRenderer.DrawText(g, intro, Theme.Body, new Rectangle(x, Theme.S(80), w, Theme.S(40)), Theme.Text, wrap);
+        InitializeComponent();
+        Title = Head.Text = T("news_title", $"{v.Major}.{v.Minor}");
+        Body.Text = body;
+        Ok.Click += (_, _) => Close();
     }
 }
 
+/// <summary>Tray menu icons (WinForms menu): 16px bitmaps from the Windows icon font.</summary>
 static class Icons
 {
-    public static readonly Font Font = new("Segoe MDL2 Assets", 12f);
-    // 16px menu icon from an icon-font glyph.
-    public static Bitmap Glyph(char c)
+    public static System.Drawing.Bitmap Glyph(char c)
     {
-        var bmp = new Bitmap(16, 16);
-        using var g = Graphics.FromImage(bmp);
+        var bmp = new System.Drawing.Bitmap(16, 16);
+        using var g = System.Drawing.Graphics.FromImage(bmp);
         g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAlias;
-        using var f = new Font("Segoe MDL2 Assets", 10f);
-        TextRenderer.DrawText(g, c.ToString(), f, new Rectangle(0, 0, 16, 16), Color.FromArgb(70, 70, 70),
-            TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
+        using var f = new System.Drawing.Font("Segoe MDL2 Assets", 10f);
+        System.Windows.Forms.TextRenderer.DrawText(g, c.ToString(), f, new System.Drawing.Rectangle(0, 0, 16, 16), System.Drawing.Color.FromArgb(70, 70, 70),
+            System.Windows.Forms.TextFormatFlags.HorizontalCenter | System.Windows.Forms.TextFormatFlags.VerticalCenter | System.Windows.Forms.TextFormatFlags.NoPadding);
         return bmp;
     }
 }

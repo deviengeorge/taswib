@@ -1,0 +1,146 @@
+<Application xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:l="using:Taswib" x:Class="Taswib.App" RequestedThemeVariant="Default">
+  <Application.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.MergedDictionaries><ResourceInclude Source="/Icons.axaml"/></ResourceDictionary.MergedDictionaries>
+      <ResourceDictionary.ThemeDictionaries>
+        <ResourceDictionary x:Key="Light">
+          <SolidColorBrush x:Key="Bg" Color="#F3F3F5"/>
+          <SolidColorBrush x:Key="Side" Color="#EAEAEE"/>
+          <SolidColorBrush x:Key="CardBg" Color="#FFFFFF"/>
+          <SolidColorBrush x:Key="Line" Color="#E2E2E7"/>
+          <SolidColorBrush x:Key="Chip" Color="#EEEEF3"/>
+          <SolidColorBrush x:Key="NavSel" Color="#E0E0E6"/>
+          <SolidColorBrush x:Key="Sub" Color="#696972"/>
+          <SolidColorBrush x:Key="ToggleSwitchFillOff" Color="#BEBEC6"/>
+          <SolidColorBrush x:Key="ToggleSwitchFillOffPointerOver" Color="#BEBEC6"/>
+          <SolidColorBrush x:Key="ToggleSwitchStrokeOff" Color="Transparent"/>
+          <SolidColorBrush x:Key="ToggleSwitchStrokeOffPointerOver" Color="Transparent"/>
+          <SolidColorBrush x:Key="ToggleSwitchKnobFillOff" Color="#FFFFFF"/>
+          <SolidColorBrush x:Key="ToggleSwitchKnobFillOffPointerOver" Color="#FFFFFF"/>
+        </ResourceDictionary>
+        <ResourceDictionary x:Key="Dark">
+          <SolidColorBrush x:Key="Bg" Color="#202020"/>
+          <SolidColorBrush x:Key="Side" Color="#181818"/>
+          <SolidColorBrush x:Key="CardBg" Color="#2C2C2F"/>
+          <SolidColorBrush x:Key="Line" Color="#424246"/>
+          <SolidColorBrush x:Key="Chip" Color="#3E3E43"/>
+          <SolidColorBrush x:Key="NavSel" Color="#3E3E43"/>
+          <SolidColorBrush x:Key="Sub" Color="#A5A5AC"/>
+          <SolidColorBrush x:Key="ToggleSwitchFillOff" Color="#5A5A60"/>
+          <SolidColorBrush x:Key="ToggleSwitchFillOffPointerOver" Color="#5A5A60"/>
+          <SolidColorBrush x:Key="ToggleSwitchStrokeOff" Color="Transparent"/>
+          <SolidColorBrush x:Key="ToggleSwitchStrokeOffPointerOver" Color="Transparent"/>
+          <SolidColorBrush x:Key="ToggleSwitchKnobFillOff" Color="#FFFFFF"/>
+          <SolidColorBrush x:Key="ToggleSwitchKnobFillOffPointerOver" Color="#FFFFFF"/>
+        </ResourceDictionary>
+      </ResourceDictionary.ThemeDictionaries>
+      <Color x:Key="SystemAccentColor">#4F46E5</Color>
+      <SolidColorBrush x:Key="Accent" Color="#4F46E5"/>
+    </ResourceDictionary>
+  </Application.Resources>
+
+  <Application.Styles>
+    <FluentTheme/>
+
+    <Style Selector="Window">
+      <Setter Property="Background" Value="{DynamicResource Bg}"/>
+      <!-- Segoe UI covers Arabic on Windows; the rest are fallbacks so Arabic letters always join -->
+      <Setter Property="FontFamily" Value="Segoe UI, Noto Sans Arabic, Tahoma"/>
+    </Style>
+    <!-- Cairo (Arabic) has tall built-in line spacing; overlap the line boxes (LineHeight would clip the letters) -->
+    <Style Selector="Window.ar l|Card TextBlock.sub"><Setter Property="Margin" Value="0,-7,0,0"/></Style>
+    <Style Selector="TextBlock.title">
+      <Setter Property="FontSize" Value="24"/><Setter Property="FontWeight" Value="SemiBold"/>
+    </Style>
+    <Style Selector="TextBlock.sub">
+      <Setter Property="FontSize" Value="12"/><Setter Property="Foreground" Value="{DynamicResource Sub}"/>
+    </Style>
+
+    <!-- Card: title + description on one side, a control on the other -->
+    <Style Selector="l|Card">
+      <Setter Property="Margin" Value="0,0,0,10"/>
+      <Setter Property="Template">
+        <ControlTemplate>
+          <Border Background="{DynamicResource CardBg}" BorderBrush="{DynamicResource Line}" BorderThickness="1"
+                  CornerRadius="8" Padding="16,0" MinHeight="64">
+            <DockPanel>
+              <ContentPresenter DockPanel.Dock="Right" Content="{TemplateBinding Content}" VerticalAlignment="Center" Margin="16,0,0,0"/>
+              <StackPanel VerticalAlignment="Center" Spacing="3">
+                <TextBlock Text="{TemplateBinding Title}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                <TextBlock Classes="sub" Text="{TemplateBinding Desc}" TextTrimming="CharacterEllipsis"/>
+              </StackPanel>
+            </DockPanel>
+          </Border>
+        </ControlTemplate>
+      </Setter>
+    </Style>
+
+    <Style Selector="ToggleSwitch">
+      <Setter Property="OnContent" Value=""/><Setter Property="OffContent" Value=""/>
+      <Setter Property="MinWidth" Value="0"/>
+    </Style>
+
+    <Style Selector="Button">
+      <Setter Property="Background" Value="{DynamicResource Chip}"/>
+      <Setter Property="Padding" Value="16,0"/>
+      <Setter Property="Height" Value="34"/>
+      <Setter Property="VerticalContentAlignment" Value="Center"/>
+      <Setter Property="CornerRadius" Value="6"/>
+      <Setter Property="Cursor" Value="Hand"/>
+    </Style>
+    <Style Selector="Button.accent">
+      <Setter Property="Background" Value="{DynamicResource Accent}"/><Setter Property="Foreground" Value="White"/>
+    </Style>
+
+    <!-- Sidebar -->
+    <Style Selector="ListBox.nav"><Setter Property="Background" Value="Transparent"/></Style>
+    <Style Selector="ListBox.nav ListBoxItem">
+      <Setter Property="Padding" Value="18,10"/><Setter Property="Margin" Value="8,2"/>
+      <Setter Property="CornerRadius" Value="6"/><Setter Property="Cursor" Value="Hand"/>
+    </Style>
+    <Style Selector="ListBox.nav ListBoxItem PathIcon">
+      <Setter Property="Width" Value="16"/><Setter Property="Height" Value="16"/>
+      <Setter Property="Foreground" Value="{DynamicResource Sub}"/>
+    </Style>
+    <Style Selector="ListBox.nav ListBoxItem:selected /template/ ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource NavSel}"/>
+    </Style>
+    <Style Selector="ListBox.nav ListBoxItem:selected PathIcon">
+      <Setter Property="Foreground" Value="{DynamicResource Accent}"/>
+    </Style>
+
+    <!-- Segmented control: a horizontal ListBox -->
+    <Style Selector="ListBox.seg">
+      <Setter Property="Background" Value="{DynamicResource Chip}"/>
+      <Setter Property="CornerRadius" Value="8"/><Setter Property="Padding" Value="3"/>
+      <Setter Property="ItemsPanel"><ItemsPanelTemplate><StackPanel Orientation="Horizontal"/></ItemsPanelTemplate></Setter>
+    </Style>
+    <Style Selector="ListBox.seg ListBoxItem">
+      <Setter Property="Padding" Value="16,0"/><Setter Property="MinHeight" Value="0"/><Setter Property="Height" Value="30"/>
+      <Setter Property="VerticalContentAlignment" Value="Center"/><Setter Property="HorizontalContentAlignment" Value="Center"/>
+      <Setter Property="CornerRadius" Value="6"/><Setter Property="Cursor" Value="Hand"/>
+    </Style>
+    <Style Selector="ListBox.seg ListBoxItem:selected /template/ ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource Accent}"/><Setter Property="Foreground" Value="White"/>
+    </Style>
+
+    <!-- Shortcut recorder -->
+    <Style Selector="l|HotkeyBox">
+      <Setter Property="Width" Value="190"/><Setter Property="Height" Value="34"/>
+      <Setter Property="CornerRadius" Value="8"/><Setter Property="Background" Value="{DynamicResource Chip}"/>
+      <Setter Property="BorderBrush" Value="{DynamicResource Line}"/><Setter Property="BorderThickness" Value="1"/>
+      <Setter Property="Cursor" Value="Hand"/>
+    </Style>
+    <Style Selector="l|HotkeyBox:focus">
+      <Setter Property="BorderBrush" Value="{DynamicResource Accent}"/><Setter Property="BorderThickness" Value="2"/>
+    </Style>
+    <Style Selector="l|HotkeyBox TextBlock">
+      <Setter Property="HorizontalAlignment" Value="Center"/><Setter Property="VerticalAlignment" Value="Center"/>
+      <Setter Property="FontWeight" Value="SemiBold"/>
+    </Style>
+    <Style Selector="l|HotkeyBox TextBlock.hint">
+      <Setter Property="Foreground" Value="#E65A5A"/><Setter Property="FontSize" Value="12"/><Setter Property="FontWeight" Value="Normal"/>
+    </Style>
+  </Application.Styles>
+</Application>
