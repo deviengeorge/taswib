@@ -31,7 +31,9 @@ static class Program
         AppDomain.CurrentDomain.UnhandledException += (_, e) => Log.Write("fatal", (Exception)e.ExceptionObject);
         var v = Assembly.GetExecutingAssembly().GetName().Version!;
         Log.Write($"start {v.Major}.{v.Minor}.{v.Build} | {System.Runtime.InteropServices.RuntimeInformation.OSDescription}");
-        Application.Run(new TrayContext(wake));
+        var ctx = new TrayContext(wake);
+        Log.Write($"ready in {(DateTime.Now - Process.GetCurrentProcess().StartTime).TotalMilliseconds:0} ms"); // process start to tray icon up
+        Application.Run(ctx);
     }
 
     static void RemoveStartup()
@@ -291,8 +293,7 @@ static class Program
                 var cfg = Settings.Current;
                 await ReleaseModifiers();
                 var before = await HistoryIds();
-                snap = Snapshot(); // every format, so images and files survive too
-                snapped = true;
+                if (cfg.RestoreClipboard) { snap = Snapshot(); snapped = true; } // restore off: nothing to put back, skip the cost
                 Clipboard.Clear();
                 var sel = await Copy();
                 if (sel == null && cfg.Scope != Scope.SelectionOnly)
@@ -350,15 +351,26 @@ static class Program
         [DllImport("user32.dll")] static extern nint GetForegroundWindow();
         [DllImport("user32.dll")] static extern bool PostMessage(nint h, uint msg, nint w, nint l);
 
+        static readonly string[] OleFormats = { "Embed Source", "Link Source", "Link Source Descriptor", "Object Descriptor", "Ole Private Data" };
+
         static Dictionary<string, object>? Snapshot()
         {
             try
             {
                 var d = Clipboard.GetDataObject();
                 if (d == null) return null;
+                var formats = d.GetFormats(false);
+                bool Has(string f) => Array.IndexOf(formats, f) >= 0;
                 var snap = new Dictionary<string, object>();
-                foreach (var f in d.GetFormats(false))
+                var start = Environment.TickCount64;
+                foreach (var f in formats)
                 {
+                    if (Array.IndexOf(OleFormats, f) >= 0) continue; // live links to the source app: useless once restored
+                    if (f == DataFormats.Bitmap && Has(DataFormats.Dib)) continue; // Windows rebuilds these from their sibling
+                    if (f == DataFormats.MetafilePict && Has(DataFormats.EnhancedMetafile)) continue;
+                    if ((f == DataFormats.Text || f == DataFormats.OemText) && Has(DataFormats.UnicodeText)) continue;
+                    // ponytail: 500 ms budget, checked between formats (one slow format can still block). Apps list richest formats first, so a cut loses only extras.
+                    if (Environment.TickCount64 - start > 500) { Log.Write($"clipboard snapshot cut at {snap.Count}/{formats.Length} formats"); break; }
                     try { if (d.GetData(f, false) is { } v) snap[f] = v; } catch { /* a format that can't be read is skipped */ }
                 }
                 return snap;
@@ -437,16 +449,17 @@ static class Program
         }
         [DllImport("user32.dll")] static extern short GetAsyncKeyState(int vk);
 
+        // One SendInput call: the 4 events are atomic, so keys the user types can't land in between.
         static void Press(Keys mod, Keys key)
         {
-            Send(mod, false); Send(key, false); Send(key, true); Send(mod, true);
+            var i = new[] { Key(mod, false), Key(key, false), Key(key, true), Key(mod, true) };
+            SendInput((uint)i.Length, i, Marshal.SizeOf<INPUT>());
         }
 
-        static void Send(Keys k, bool up)
-        {
-            var i = new INPUT { type = 1, ki = new KEYBDINPUT { wVk = (ushort)k, dwFlags = up ? 2u : 0u } };
-            SendInput(1, new[] { i }, Marshal.SizeOf<INPUT>());
-        }
+        // Without KEYEVENTF_EXTENDEDKEY (1), Home etc. are read as the numpad key, and with NumLock on Shift+Numpad7 moves without selecting.
+        static readonly Keys[] Extended = { Keys.Home, Keys.End, Keys.Insert, Keys.Delete, Keys.PageUp, Keys.PageDown, Keys.Left, Keys.Right, Keys.Up, Keys.Down };
+        static INPUT Key(Keys k, bool up) =>
+            new() { type = 1, ki = new KEYBDINPUT { wVk = (ushort)k, dwFlags = (up ? 2u : 0u) | (Array.IndexOf(Extended, k) >= 0 ? 1u : 0u) } };
 
         [DllImport("user32.dll")] static extern uint SendInput(uint n, INPUT[] i, int size);
         [StructLayout(LayoutKind.Sequential)] struct INPUT { public uint type; public KEYBDINPUT ki; long pad; }
