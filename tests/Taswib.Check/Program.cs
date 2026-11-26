@@ -15,4 +15,8 @@ Eq(TextTools.FixPunctuation("ماذا? نعم, ok; hi,"), "ماذا؟ نعم، o
 Eq(TextTools.FixPunctuation("لا ; نعم"), "لا ؛ نعم");                     // space before is skipped
 Eq(TextTools.Normalize("أحمد إبراهيم آمنة على"), "احمد ابراهيم امنة علي");
 Eq(TextTools.Normalize("مُحَمَّد كــلام"), "محمد كلام");                  // tashkeel + tatweel removed
+// The b key types ل+ا, same as g+h: each word must survive English -> Arabic -> English.
+foreach (var w in new[] { "about", "table", "club", "possible", "high", "right", "though", "laughs", "roughly", "eight" })
+    Eq(Mapper.Convert(Mapper.Convert(w)), w);
+Eq(Mapper.Convert("لأ"), "G");                                        // Shift+G types two chars too
 Console.WriteLine("ok");
