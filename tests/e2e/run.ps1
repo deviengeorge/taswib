@@ -39,12 +39,15 @@ $script:fails = 0
 function Test-Fix([string]$name, [string]$typed, [string]$expect, [byte[]]$mods, [byte]$vk, [bool]$ext) {
   $form = New-Object System.Windows.Forms.Form; $form.Width = 520; $form.Height = 220; $form.TopMost = $true; $form.Text = 'e2e'
   $tb = New-Object System.Windows.Forms.TextBox; $tb.Multiline = $true; $tb.Dock = 'Fill'; $tb.Font = New-Object System.Drawing.Font('Segoe UI', 14)
+  Set-Clipboard -Value 'taswib-e2e-keep'   # the fix must put this back afterwards
   $form.Controls.Add($tb); $form.Show(); $form.Activate(); $tb.Focus(); $tb.Text = $typed; $tb.SelectAll()
   Pump 800
   Key $mods $vk $ext
   Pump 3000
   $got = $tb.Text; Shot 'e2e' "result-$name.png"; $form.Close()
   if ($got -eq $expect) { Write-Host "PASS $name" } else { Write-Host "FAIL $name : got '$got' expected '$expect'"; $script:fails++ }
+  $clip = Get-Clipboard -Raw
+  if ($clip -eq 'taswib-e2e-keep') { Write-Host "PASS $name clipboard restored" } else { Write-Host "FAIL $name clipboard : got '$clip'"; $script:fails++ }
 }
 
 # ---- 1. real shortcut tests
