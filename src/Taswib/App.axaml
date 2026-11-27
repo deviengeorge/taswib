@@ -2,7 +2,7 @@
              xmlns:l="using:Taswib" x:Class="Taswib.App" RequestedThemeVariant="Default">
   <Application.Resources>
     <ResourceDictionary>
-      <ResourceDictionary.MergedDictionaries><ResourceInclude Source="/Icons.axaml"/></ResourceDictionary.MergedDictionaries>
+      <ResourceDictionary.MergedDictionaries><ResourceInclude Source="/Ui/Icons.axaml"/></ResourceDictionary.MergedDictionaries>
       <ResourceDictionary.ThemeDictionaries>
         <ResourceDictionary x:Key="Light">
           <SolidColorBrush x:Key="Bg" Color="#F3F3F5"/>
