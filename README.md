@@ -49,7 +49,7 @@ From **cmd**:
 powershell -c "irm https://raw.githubusercontent.com/deviengeorge/taswib/main/install.ps1 | iex"
 ```
 
-The script picks the right build: a small installer (about 16 MB) if the .NET 8 Desktop Runtime is already installed, otherwise the self-contained one (about 79 MB, nothing else to install).
+The script picks the right build: a small installer (about 16 MB) if the .NET 10 Desktop Runtime is already installed, otherwise the self-contained one (about 79 MB, nothing else to install).
 
 Or by hand:
 
