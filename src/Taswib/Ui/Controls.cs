@@ -1,23 +1,8 @@
-using System.Diagnostics;
-using System.Reflection;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
-using Avalonia.Markup.Xaml;
-using Avalonia.Media;
 using Avalonia.Threading;
 using static Taswib.Strings;
-// WinForms is referenced too (tray, clipboard); these aliases pick the Avalonia type for the names both define.
-using Window = Avalonia.Controls.Window;
-using Button = Avalonia.Controls.Button;
-using ListBox = Avalonia.Controls.ListBox;
-using Border = Avalonia.Controls.Border;
-using TextBlock = Avalonia.Controls.TextBlock;
-using KeyEventArgs = Avalonia.Input.KeyEventArgs;
-using FlowDirection = Avalonia.Media.FlowDirection;
-using Keys = System.Windows.Forms.Keys;
-using Application = Avalonia.Application;
-using FontFamily = Avalonia.Media.FontFamily;
 
 namespace Taswib;
 
@@ -97,10 +82,10 @@ public sealed class HotkeyBox : Border
         var m = e.KeyModifiers;
         if (e.Key == Key.Delete && m == KeyModifiers.None && AllowClear) { Set(""); return; }
         // Avalonia key names match the table's names (case aside); a key with no entry beeps.
-        if (!Taswib.Core.Hotkey.TryKey(e.Key.ToString(), out var vk, out var name)) { System.Media.SystemSounds.Beep.Play(); return; }
+        if (!Taswib.Core.Hotkey.TryKey(e.Key.ToString(), out var vk, out var name)) { Sound.Beep(); return; }
         if (m == KeyModifiers.None && !Taswib.Core.Hotkey.BareOk(vk))
         {
-            System.Media.SystemSounds.Beep.Play(); // a bare letter would be hijacked system-wide; keep old value
+            Sound.Beep(); // a bare letter would be hijacked system-wide; keep old value
             Hint = T("hk_bare"); hintTimer.Stop(); hintTimer.Start();
             return;
         }

@@ -10,7 +10,8 @@ namespace Taswib;
 /// Checks GitHub for a newer release.
 /// Installed copy (Setup.exe): download it and restart into it. Portable exe: point the user at the release page.
 /// </summary>
-sealed class Updater(NotifyIcon tray)
+/// <param name="setTip">Shows download progress in the tray tooltip.</param>
+sealed class Updater(Action<string> setTip)
 {
     bool retryPending;
 
@@ -20,7 +21,7 @@ sealed class Updater(NotifyIcon tray)
     /// <param name="report">Settings page callback; without it messages go to the tray balloon.</param>
     public async Task Check(bool silent = false, bool restart = true, Action<string>? report = null)
     {
-        var say = new Say(tray, report, silent);
+        var say = new Say(setTip, report, silent);
         try
         {
             say.Info(T("chk"));
@@ -32,7 +33,7 @@ sealed class Updater(NotifyIcon tray)
         {
             Log.Write("update check failed", e);
             var offline = IsOffline(e);
-            say.Info(T(offline ? "updfail" : "updfail2"), ToolTipIcon.Warning, 5000);
+            say.Info(T(offline ? "updfail" : "updfail2"), warn: true, ms: 5000);
             if (silent && offline) RetryLater();
         }
     }
@@ -91,16 +92,16 @@ sealed class Updater(NotifyIcon tray)
         TrayContext.After(30 * 60 * 1000, () => { retryPending = false; _ = Check(silent: true, restart: false); }); // no restart mid-use
     }
 
-    /// <summary>Where messages go: the Settings page if it asked, else the tray. Silent checks drop Info and Progress.</summary>
-    sealed record Say(NotifyIcon Tray, Action<string>? Report, bool Silent)
+    /// <summary>Where messages go: the Settings page if it asked, else a notification. Silent checks drop Info and Progress.</summary>
+    sealed record Say(Action<string> Tip, Action<string>? Report, bool Silent)
     {
         /// <summary>Shows a message, unless the check is silent.</summary>
-        public void Info(string msg, ToolTipIcon icon = ToolTipIcon.Info, int ms = 3000) { if (!Silent) Show(msg, icon, ms); }
+        public void Info(string msg, bool warn = false, int ms = 3000) { if (!Silent) Show(msg, warn, ms); }
         /// <summary>Shows a message even on a silent check (news worth telling).</summary>
-        public void Always(string msg, int ms) => Show(msg, ToolTipIcon.Info, ms);
-        /// <summary>Shows download progress on the Settings page or tray tooltip (no balloon), unless silent.</summary>
-        public void Progress(string msg) { if (Silent) return; if (Report != null) Report(msg); else Tray.Text = msg; }
-        void Show(string msg, ToolTipIcon icon, int ms) { if (Report != null) Report(msg); else Tray.ShowBalloonTip(ms, "Taswib", msg, icon); }
+        public void Always(string msg, int ms) => Show(msg, false, ms);
+        /// <summary>Shows download progress on the Settings page or tray tooltip (no notification), unless silent.</summary>
+        public void Progress(string msg) { if (Silent) return; if (Report != null) Report(msg); else Tip(msg); }
+        void Show(string msg, bool warn, int ms) { if (Report != null) Report(msg); else Toast.Show(msg, warn, ms); }
     }
 
     /// <summary>The fields used from GitHub's latest-release JSON (names match the API).</summary>

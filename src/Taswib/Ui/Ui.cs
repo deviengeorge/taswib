@@ -1,31 +1,31 @@
 using System.Diagnostics;
-using System.Reflection;
 using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Input;
 using Avalonia.Markup.Xaml;
 using Avalonia.Media;
+using Avalonia.Media.Imaging;
+using Avalonia.Styling;
 using Avalonia.Threading;
 using static Taswib.Strings;
-// WinForms is referenced too (tray, clipboard); these aliases pick the Avalonia type for the names both define.
-using Window = Avalonia.Controls.Window;
-using Button = Avalonia.Controls.Button;
-using ListBox = Avalonia.Controls.ListBox;
-using Border = Avalonia.Controls.Border;
-using TextBlock = Avalonia.Controls.TextBlock;
-using KeyEventArgs = Avalonia.Input.KeyEventArgs;
-using FlowDirection = Avalonia.Media.FlowDirection;
-using Keys = System.Windows.Forms.Keys;
-using Application = Avalonia.Application;
-using FontFamily = Avalonia.Media.FontFamily;
 
 namespace Taswib;
 
-/// <summary>Avalonia application: loads the shared styles and light/dark colors from App.axaml.</summary>
+/// <summary>Avalonia application: loads the shared styles and light/dark colors from App.axaml, then starts the tray.</summary>
 public partial class App : Application
 {
+    TrayContext? tray; // the whole app hangs off this; kept here so it lives as long as the application
+
     /// <summary>Loads App.axaml.</summary>
     public override void Initialize() => AvaloniaXamlLoader.Load(this);
+
+    /// <summary>Logs UI-thread exceptions instead of crashing, then starts the tray.</summary>
+    public override void OnFrameworkInitializationCompleted()
+    {
+        Dispatcher.UIThread.UnhandledException += (_, e) => { Log.Write("ui exception", e.Exception); e.Handled = true; };
+        tray = new TrayContext(Program.Wake);
+        Log.Write($"ready in {(DateTime.Now - Process.GetCurrentProcess().StartTime).TotalMilliseconds:0} ms"); // process start to tray icon up
+        base.OnFrameworkInitializationCompleted();
+    }
 }
 
 /// <summary>XAML text lookup: <c>Text="{l:Tr enabled}"</c>.</summary>
@@ -45,35 +45,61 @@ static class Ui
     /// <summary>Cairo, bundled (OFL), so Arabic looks the same on every PC; English keeps Segoe UI.</summary>
     public static readonly FontFamily ArabicFont = new($"avares://{typeof(Ui).Assembly.GetName().Name}/Assets/Fonts#Cairo");
 
-    /// <summary>Starts Avalonia without its own message loop; the WinForms loop pumps it.</summary>
-    public static void Setup() => AppBuilder.Configure<App>().UseWin32().UseSkia().SetupWithoutStarting();
+    /// <summary>Arabic: mirrors the whole layout and switches to Cairo.</summary>
+    public static void Localize(Window w)
+    {
+        if (Arabic) { w.FlowDirection = FlowDirection.RightToLeft; w.FontFamily = ArabicFont; w.Classes.Add("ar"); }
+    }
 
     /// <summary>Show a window and wait until it closes (the tray app has no owner window for ShowDialog).</summary>
     public static Task ShowAsync(Window w)
     {
         var done = new TaskCompletionSource();
         w.Closed += (_, _) => done.TrySetResult();
-        if (Arabic) { w.FlowDirection = FlowDirection.RightToLeft; w.FontFamily = ArabicFont; w.Classes.Add("ar"); } // mirrors the whole layout
+        Localize(w);
         w.Show(); w.Activate();
         return done.Task;
     }
 
     /// <summary>Opens a URL or folder with its default app.</summary>
     public static void Open(string url) => Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
-}
 
-/// <summary>Tray menu icons (WinForms menu): 16px bitmaps from the Windows icon font.</summary>
-static class Icons
-{
-    /// <summary>Draws one Segoe MDL2 Assets glyph as a 16px gray bitmap.</summary>
-    public static System.Drawing.Bitmap Glyph(char c)
+    /// <summary>Style that mirrors the tray menu (Avalonia draws it in its own popup) for Arabic.</summary>
+    static readonly Style RtlMenu = new(x => x.Is<MenuFlyoutPresenter>())
     {
-        var bmp = new System.Drawing.Bitmap(16, 16);
-        using var g = System.Drawing.Graphics.FromImage(bmp);
-        g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAlias;
-        using var f = new System.Drawing.Font("Segoe MDL2 Assets", 10f);
-        System.Windows.Forms.TextRenderer.DrawText(g, c.ToString(), f, new System.Drawing.Rectangle(0, 0, 16, 16), System.Drawing.Color.FromArgb(70, 70, 70),
-            System.Windows.Forms.TextFormatFlags.HorizontalCenter | System.Windows.Forms.TextFormatFlags.VerticalCenter | System.Windows.Forms.TextFormatFlags.NoPadding);
+        Setters = { new Setter(Visual.FlowDirectionProperty, FlowDirection.RightToLeft), new Setter(Avalonia.Controls.Primitives.TemplatedControl.FontFamilyProperty, ArabicFont) },
+    };
+
+    /// <summary>Turns the Arabic tray-menu style on or off to match the UI language.</summary>
+    public static void MirrorMenus()
+    {
+        var styles = Application.Current!.Styles;
+        styles.Remove(RtlMenu);
+        if (Arabic) styles.Add(RtlMenu);
+    }
+
+    /// <summary>Draws one Segoe MDL2 Assets glyph as a 16px tray-menu icon (rendered at 2x, so it stays sharp when scaled).</summary>
+    public static Bitmap Glyph(char c)
+    {
+        var tb = new TextBlock
+        {
+            Text = c.ToString(), FontFamily = new FontFamily("Segoe MDL2 Assets"), FontSize = 12,
+            Foreground = new SolidColorBrush(Color.FromRgb(120, 120, 120)), // mid gray: readable on light and dark menus
+            Width = 16, Height = 16, TextAlignment = TextAlignment.Center, Padding = new Thickness(0, 2, 0, 0),
+        };
+        tb.Measure(new Size(16, 16));
+        tb.Arrange(new Rect(0, 0, 16, 16));
+        var bmp = new RenderTargetBitmap(new PixelSize(32, 32), new Vector(192, 192));
+        bmp.Render(tb);
         return bmp;
     }
+}
+
+/// <summary>Windows sounds (WinForms' SystemSounds is gone with WinForms).</summary>
+static class Sound
+{
+    /// <summary>The "asterisk" sound, played after a successful fix.</summary>
+    public static void Done() => Windows.Win32.PInvoke.MessageBeep(Windows.Win32.UI.WindowsAndMessaging.MESSAGEBOX_STYLE.MB_ICONASTERISK);
+    /// <summary>The default beep, played on a rejected key.</summary>
+    public static void Beep() => Windows.Win32.PInvoke.MessageBeep(Windows.Win32.UI.WindowsAndMessaging.MESSAGEBOX_STYLE.MB_OK);
 }

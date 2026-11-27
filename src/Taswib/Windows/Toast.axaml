@@ -1,0 +1,15 @@
+<Window xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="Taswib.Toast" Title="Taswib" Opacity="0"
+        SystemDecorations="None" Topmost="True" ShowActivated="False" ShowInTaskbar="False" CanResize="False"
+        SizeToContent="WidthAndHeight" WindowStartupLocation="Manual" Background="{DynamicResource CardBg}">
+  <!-- Corner notification that replaces the WinForms tray balloon. Never takes focus: the user is typing in another app. -->
+  <Border BorderBrush="{DynamicResource Line}" BorderThickness="1" Padding="16,12" MinWidth="280" MaxWidth="380">
+    <DockPanel>
+      <Image DockPanel.Dock="Left" Source="/Assets/logo.png" Width="28" Height="28" VerticalAlignment="Top" Margin="0,2,12,0"/>
+      <StackPanel Spacing="2">
+        <TextBlock x:Name="Head" Text="Taswib" FontWeight="SemiBold"/>
+        <TextBlock x:Name="Body" Classes="sub" FontSize="13" TextWrapping="Wrap"/>
+      </StackPanel>
+    </DockPanel>
+  </Border>
+</Window>

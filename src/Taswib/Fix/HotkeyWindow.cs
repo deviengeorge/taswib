@@ -25,7 +25,7 @@ sealed unsafe class HotkeyWindow
         var module = PInvoke.GetModuleHandle((char*)null);
         fixed (char* cls = "TaswibHotkeys")
         {
-            var wc = new WNDCLASSEXW { cbSize = (uint)sizeof(WNDCLASSEXW), lpfnWndProc = Proc, hInstance = module, lpszClassName = cls };
+            var wc = new WNDCLASSEXW { cbSize = (uint)Marshal.SizeOf<WNDCLASSEXW>(), lpfnWndProc = Proc, hInstance = module, lpszClassName = cls };
             PInvoke.RegisterClassEx(wc);
             Handle = PInvoke.CreateWindowEx(0, cls, null, 0, 0, 0, 0, 0, new HWND((void*)-3) /* HWND_MESSAGE */, default, module, null);
         }

@@ -142,6 +142,7 @@
       <Setter Property="HorizontalAlignment" Value="Center"/><Setter Property="VerticalAlignment" Value="Center"/>
       <Setter Property="FontWeight" Value="SemiBold"/>
     </Style>
+    <Style Selector="TextBlock.warn"><Setter Property="Foreground" Value="#E65A5A"/></Style>
     <Style Selector="l|HotkeyBox TextBlock.hint">
       <Setter Property="Foreground" Value="#E65A5A"/><Setter Property="FontSize" Value="12"/><Setter Property="FontWeight" Value="Normal"/>
     </Style>
