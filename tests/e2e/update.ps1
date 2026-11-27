@@ -21,7 +21,7 @@ $env:TASWIB_UPDATE_FEED = $Feed
 Start-Process $exe   # startup check: downloads the update, keeps running the old version
 $log = "$app\taswib.log"
 $end = (Get-Date).AddSeconds(120)
-while ((Get-Date) -lt $end -and -not (Select-String -Path $log -Pattern 'downloaded' -Quiet -ErrorAction SilentlyContinue)) { Start-Sleep 2 }
+while ((Get-Date) -lt $end -and -not ((Test-Path $log) -and (Select-String -Path $log -Pattern 'downloaded' -Quiet))) { Start-Sleep 2 }
 if ((Ver) -like "$Expect*") { throw "updated without being restarted" }
 Get-Process Taswib -ErrorAction SilentlyContinue | Stop-Process -Force; Start-Sleep 2
 Start-Process $exe   # next start: Velopack applies the downloaded update first
