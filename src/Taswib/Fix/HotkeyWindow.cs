@@ -9,7 +9,7 @@ sealed class HotkeyWindow : NativeWindow
     /// <summary>Creates the hidden window; <paramref name="onPress"/> gets the hotkey id on each press.</summary>
     public HotkeyWindow(Func<int, Task> onPress) { this.onPress = onPress; CreateHandle(new CreateParams()); }
     /// <summary>Registers a global hotkey without auto-repeat. False if another app already owns it.</summary>
-    public bool Register(int id, uint mod, Keys k) => RegisterHotKey(Handle, id, mod | 0x4000, (uint)k); // 0x4000 = no auto-repeat
+    public bool Register(int id, uint mod, ushort vk) => RegisterHotKey(Handle, id, mod | 0x4000, vk); // 0x4000 = no auto-repeat
     /// <summary>Releases both hotkeys (Fix and Clean).</summary>
     public void Unregister() { UnregisterHotKey(Handle, 1); UnregisterHotKey(Handle, 2); }
     /// <summary>Forwards WM_HOTKEY to the callback; everything else goes to the default handler.</summary>

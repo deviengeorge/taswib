@@ -34,7 +34,7 @@ public sealed class Card : ContentControl
     public string Desc { get => GetValue(DescProperty); set => SetValue(DescProperty, value); }
 }
 
-/// <summary>Click, then press a shortcut. Values use WinForms <see cref="Keys"/> names, as RegisterHotKey needs them.</summary>
+/// <summary>Click, then press a shortcut. Values use the key names in <see cref="Taswib.Core.Hotkey"/>.</summary>
 public sealed class HotkeyBox : Border
 {
     readonly TextBlock text = new();
@@ -96,19 +96,15 @@ public sealed class HotkeyBox : Border
         if (e.Key is Key.LeftCtrl or Key.RightCtrl or Key.LeftShift or Key.RightShift or Key.LeftAlt or Key.RightAlt or Key.LWin or Key.RWin or Key.Escape) return; // wait for the real key
         var m = e.KeyModifiers;
         if (e.Key == Key.Delete && m == KeyModifiers.None && AllowClear) { Set(""); return; }
-        // ponytail: Avalonia and WinForms key names match for the keys people bind (letters, digits, F-keys, Insert, Pause...); an unmatched one beeps.
-        if (!Enum.TryParse<Keys>(e.Key.ToString(), out var key)) { System.Media.SystemSounds.Beep.Play(); return; }
-        if (m == KeyModifiers.None && !BareOk(key))
+        // Avalonia key names match the table's names (case aside); a key with no entry beeps.
+        if (!Taswib.Core.Hotkey.TryKey(e.Key.ToString(), out var vk, out var name)) { System.Media.SystemSounds.Beep.Play(); return; }
+        if (m == KeyModifiers.None && !Taswib.Core.Hotkey.BareOk(vk))
         {
             System.Media.SystemSounds.Beep.Play(); // a bare letter would be hijacked system-wide; keep old value
             Hint = T("hk_bare"); hintTimer.Stop(); hintTimer.Start();
             return;
         }
         var mods = (m.HasFlag(KeyModifiers.Control) ? Taswib.Core.Hotkey.Ctrl : 0) | (m.HasFlag(KeyModifiers.Shift) ? Taswib.Core.Hotkey.Shift : 0) | (m.HasFlag(KeyModifiers.Alt) ? Taswib.Core.Hotkey.Alt : 0);
-        Set(Taswib.Core.Hotkey.Format(mods, key.ToString()));
+        Set(Taswib.Core.Hotkey.Format(mods, name));
     }
-
-    /// <summary>Keys that are safe to own globally with no modifier.</summary>
-    static bool BareOk(Keys k) => (k >= Keys.F1 && k <= Keys.F24)
-        || k is Keys.Insert or Keys.Pause or Keys.Scroll or Keys.Home or Keys.End or Keys.PageUp or Keys.PageDown or Keys.Delete;
 }

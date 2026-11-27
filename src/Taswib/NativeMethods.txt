@@ -4,3 +4,4 @@ PostMessage
 GetClipboardSequenceNumber
 GetAsyncKeyState
 SendInput
+GetKeyState

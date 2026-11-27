@@ -38,15 +38,15 @@ static class Fixer
             var sel = await Copy();
             if (sel == null && cfg.Scope != Scope.SelectionOnly)
             {
-                if (cfg.Scope == Scope.SelectionOrLine) Press(Keys.ShiftKey, Keys.Home);
-                else Press(Keys.ControlKey, Keys.A);
+                if (cfg.Scope == Scope.SelectionOrLine) Press(VIRTUAL_KEY.VK_SHIFT, VIRTUAL_KEY.VK_HOME);
+                else Press(VIRTUAL_KEY.VK_CONTROL, (VIRTUAL_KEY)'A');
                 sel = await Copy();
             }
             if (sel != null)
             {
                 var dir = Mapper.Resolve(sel, cfg.Direction);
                 var output = sel;
-                if (mode == Mode.Fix) output = Mapper.Convert(sel, dir, Control.IsKeyLocked(Keys.CapsLock));
+                if (mode == Mode.Fix) output = Mapper.Convert(sel, dir, (PInvoke.GetKeyState((int)VIRTUAL_KEY.VK_CAPITAL) & 1) != 0);
                 else
                 {
                     if (cfg.CleanPunctuation) output = TextTools.FixPunctuation(output);
@@ -56,7 +56,7 @@ static class Fixer
                 else
                 {
                     SetPrivate(output);
-                    Press(Keys.ControlKey, Keys.V);
+                    Press(VIRTUAL_KEY.VK_CONTROL, (VIRTUAL_KEY)'V');
                     await Task.Delay(200);
                     if (mode == Mode.Fix && cfg.SwitchLayout) SwitchTo(dir == Direction.ToArabic ? 0x01 : 0x09);
                     length = sel.Length;
@@ -178,7 +178,7 @@ static class Fixer
     static async Task<string?> Copy()
     {
         var seq = PInvoke.GetClipboardSequenceNumber();
-        Press(Keys.ControlKey, Keys.C);
+        Press(VIRTUAL_KEY.VK_CONTROL, (VIRTUAL_KEY)'C');
         var start = Environment.TickCount64;
         while (true)
         {
@@ -198,18 +198,18 @@ static class Fixer
     }
 
     /// <summary>Sends mod+key down/up in one SendInput call: atomic, so keys the user types can't land in between.</summary>
-    static void Press(Keys mod, Keys key)
+    static void Press(VIRTUAL_KEY mod, VIRTUAL_KEY key)
     {
         var i = new[] { Key(mod, false), Key(key, false), Key(key, true), Key(mod, true) };
         PInvoke.SendInput(i, System.Runtime.InteropServices.Marshal.SizeOf<INPUT>());
     }
 
     // Without KEYEVENTF_EXTENDEDKEY (1), Home etc. are read as the numpad key, and with NumLock on Shift+Numpad7 moves without selecting.
-    static readonly Keys[] Extended = { Keys.Home, Keys.End, Keys.Insert, Keys.Delete, Keys.PageUp, Keys.PageDown, Keys.Left, Keys.Right, Keys.Up, Keys.Down };
+    static readonly VIRTUAL_KEY[] Extended = { VIRTUAL_KEY.VK_HOME, VIRTUAL_KEY.VK_END, VIRTUAL_KEY.VK_INSERT, VIRTUAL_KEY.VK_DELETE, VIRTUAL_KEY.VK_PRIOR, VIRTUAL_KEY.VK_NEXT, VIRTUAL_KEY.VK_LEFT, VIRTUAL_KEY.VK_RIGHT, VIRTUAL_KEY.VK_UP, VIRTUAL_KEY.VK_DOWN };
     /// <summary>Builds one keyboard INPUT event, flagged extended for navigation keys.</summary>
-    static INPUT Key(Keys k, bool up) => new()
+    static INPUT Key(VIRTUAL_KEY k, bool up) => new()
     {
         type = INPUT_TYPE.INPUT_KEYBOARD,
-        Anonymous = { ki = new KEYBDINPUT { wVk = (VIRTUAL_KEY)k, dwFlags = (up ? KEYBD_EVENT_FLAGS.KEYEVENTF_KEYUP : 0) | (Array.IndexOf(Extended, k) >= 0 ? KEYBD_EVENT_FLAGS.KEYEVENTF_EXTENDEDKEY : 0) } },
+        Anonymous = { ki = new KEYBDINPUT { wVk = k, dwFlags = (up ? KEYBD_EVENT_FLAGS.KEYEVENTF_KEYUP : 0) | (Array.IndexOf(Extended, k) >= 0 ? KEYBD_EVENT_FLAGS.KEYEVENTF_EXTENDEDKEY : 0) } },
     };
 }

@@ -28,4 +28,14 @@ Hk("Crtl+K", out h); Eq(h, "fail");                           // typo must not r
 Hk("Ctrl+", out h); Eq(h, "fail");
 Eq(Hotkey.Format(Hotkey.Alt | Hotkey.Ctrl | Hotkey.Shift, "F9"), "Ctrl+Shift+Alt+F9");
 Hk(Hotkey.Format(Hotkey.Ctrl | Hotkey.Win, "D1"), out h); Eq(h, "10:D1");
+// Key names: old saved names still work, Avalonia spellings map to them, letters can't be bare.
+string Vk(string n) => Hotkey.TryKey(n, out var vk, out var c) ? $"{vk:X2}:{c}" : "fail";
+Eq(Vk("Insert"), "2D:Insert");
+Eq(Vk("Pause"), "13:Pause");
+Eq(Vk("OemComma"), "BC:Oemcomma");                             // Avalonia name, saved WinForms spelling
+Eq(Vk("Prior"), "21:PageUp");
+Eq(Vk("D7"), "37:D7");
+Eq(Vk("F24"), "87:F24");
+Eq(Vk("LeftCtrl"), "fail");
+Eq((Hotkey.BareOk(0x2D) && Hotkey.BareOk(0x7B) && !Hotkey.BareOk('A') && !Hotkey.BareOk(0x20)).ToString(), "True");
 Console.WriteLine("ok");

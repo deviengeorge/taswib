@@ -74,11 +74,11 @@ public sealed class Settings
         var tmp = PathFile + ".tmp"; File.WriteAllText(tmp, JsonSerializer.Serialize(this, Opt)); File.Move(tmp, PathFile, overwrite: true);
     }
 
-    /// <summary>Parses hotkey text into modifier flags and a WinForms key. Text parsing lives in Taswib.Core.Hotkey.</summary>
-    /// <returns>False if the text is invalid or the key name is not a known <c>Keys</c> value.</returns>
-    public static bool TryParseHotkey(string s, out uint mod, out Keys key)
+    /// <summary>Parses hotkey text into modifier flags and a virtual-key code. Parsing lives in Taswib.Core.Hotkey.</summary>
+    /// <returns>False if the text is invalid or the key name is unknown.</returns>
+    public static bool TryParseHotkey(string s, out uint mod, out ushort vk)
     {
-        key = Keys.None;
-        return Taswib.Core.Hotkey.TryParse(s, out mod, out var name) && Enum.TryParse(name, out key) && key != Keys.None;
+        vk = 0;
+        return Taswib.Core.Hotkey.TryParse(s, out mod, out var name) && Taswib.Core.Hotkey.TryKey(name, out vk, out _);
     }
 }
