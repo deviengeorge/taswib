@@ -29,6 +29,6 @@ static class Program
         AppDomain.CurrentDomain.UnhandledException += (_, e) => Log.Write("fatal", (Exception)e.ExceptionObject);
         Log.Write($"start {Version} | {RuntimeInformation.OSDescription}");
         // No windows at start, so only the tray menu's Exit ends the app.
-        AppBuilder.Configure<App>().UseWin32().UseSkia().StartWithClassicDesktopLifetime(args, ShutdownMode.OnExplicitShutdown);
+        AppBuilder.Configure<App>().UseWin32().UseSkia().UseHarfBuzz().StartWithClassicDesktopLifetime(args, ShutdownMode.OnExplicitShutdown);
     }
 }
