@@ -1,5 +1,6 @@
 # Auto-update check: installs the OLD version, points it at a local feed holding a NEW version,
-# starts it like Windows would at login, and waits for the installed exe to become the new version.
+# starts it like Windows would at login, waits for the download, then starts it again: the update
+# applies on that next start (the app never restarts itself mid-use).
 param([Parameter(Mandatory)][string]$Setup, [Parameter(Mandatory)][string]$Feed, [Parameter(Mandatory)][string]$Expect)
 $ErrorActionPreference = 'Stop'
 $app = "$env:LOCALAPPDATA\Taswib"
@@ -17,12 +18,18 @@ Write-Host "installed: $old"
 if (-not $old -or $old -like "$Expect*") { throw "install failed or already new: '$old'" }
 
 $env:TASWIB_UPDATE_FEED = $Feed
-Start-Process $exe   # startup check: download, apply, restart
+Start-Process $exe   # startup check: downloads the update, keeps running the old version
+$log = "$app\taswib.log"
 $end = (Get-Date).AddSeconds(120)
+while ((Get-Date) -lt $end -and -not (Select-String -Path $log -Pattern 'downloaded' -Quiet -ErrorAction SilentlyContinue)) { Start-Sleep 2 }
+if ((Ver) -like "$Expect*") { throw "updated without being restarted" }
+Get-Process Taswib -ErrorAction SilentlyContinue | Stop-Process -Force; Start-Sleep 2
+Start-Process $exe   # next start: Velopack applies the downloaded update first
+$end = (Get-Date).AddSeconds(60)
 while ((Get-Date) -lt $end -and -not ((Ver) -like "$Expect*")) { Start-Sleep 2 }
 $new = Ver
 Write-Host "after update: $new"
-Get-Content "$app\taswib.log" -ErrorAction SilentlyContinue | Select-Object -Last 20
+Get-Content $log -ErrorAction SilentlyContinue | Select-Object -Last 20
 if (-not ($new -like "$Expect*")) { throw "not updated: still '$new'" }
 $end = (Get-Date).AddSeconds(30)  # restart lags the file swap by a moment
 while ((Get-Date) -lt $end -and -not (Get-Process Taswib -ErrorAction SilentlyContinue)) { Start-Sleep 1 }

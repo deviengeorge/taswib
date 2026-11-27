@@ -59,6 +59,7 @@ sealed class Updater(Action<string> setTip)
             lastTenth = pct / 10;
             say.Progress(T("dl", pct));
         });
+        Log.Write($"update {version} downloaded");
         if (restart) { say.Info(T("restart")); mgr.ApplyUpdatesAndRestart(info); }
         else say.Always(T("ready", version), 5000); // Velopack applies it on next start; WaitExitThenApplyUpdates would kill the app after 60 s
     }
