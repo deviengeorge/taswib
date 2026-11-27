@@ -71,7 +71,7 @@ public sealed class HotkeyBox : Border
     /// <summary>Click focuses the box so it starts listening.</summary>
     protected override void OnPointerPressed(PointerPressedEventArgs e) { Focus(); e.Handled = true; }
     /// <summary>Starts a new capture and shows the waiting mark.</summary>
-    protected override void OnGotFocus(GotFocusEventArgs e) { Captured = false; base.OnGotFocus(e); }
+    protected override void OnGotFocus(FocusChangedEventArgs e) { Captured = false; base.OnGotFocus(e); }
 
     /// <summary>Records the pressed shortcut. Waits past lone modifiers; rejects bare keys unsafe to own system-wide.</summary>
     protected override void OnKeyDown(KeyEventArgs e)

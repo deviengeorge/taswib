@@ -20,10 +20,10 @@
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
     <PackageReference Include="Velopack" Version="1.2.161" />
-    <PackageReference Include="Avalonia" Version="11.3.23" />
-    <PackageReference Include="Avalonia.Win32" Version="11.3.23" />
-    <PackageReference Include="Avalonia.Skia" Version="11.3.23" />
-    <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.23" />
+    <PackageReference Include="Avalonia" Version="12.2.0" />
+    <PackageReference Include="Avalonia.Win32" Version="12.2.0" />
+    <PackageReference Include="Avalonia.Skia" Version="12.2.0" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="12.2.0" />
   </ItemGroup>
   <ItemGroup><ProjectReference Include="..\Taswib.Core\Taswib.Core.csproj" /></ItemGroup>
 </Project>
