@@ -36,9 +36,7 @@ static class Log
         var layouts = "?";
         try
         {
-            var n = GetKeyboardLayoutList(0, null);
-            var l = new nint[n]; GetKeyboardLayoutList(n, l);
-            layouts = string.Join(' ', l.Select(h => ((int)h & 0xFFFF).ToString("X4")));
+            layouts = string.Join(' ', Win.Layouts().Select(h => ((int)h & 0xFFFF).ToString("X4")));
         }
         catch { }
         var hist = "?";
@@ -58,6 +56,4 @@ static class Log
             {tail}
             """;
     }
-
-    [DllImport("user32.dll")] static extern int GetKeyboardLayoutList(int n, nint[]? list);
 }

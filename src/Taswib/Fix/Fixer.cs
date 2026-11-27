@@ -1,5 +1,7 @@
-using System.Runtime.InteropServices;
 using Taswib.Core;
+using Windows.Win32;
+using Windows.Win32.Foundation;
+using Windows.Win32.UI.Input.KeyboardAndMouse;
 using WinClip = Windows.ApplicationModel.DataTransfer.Clipboard;
 
 namespace Taswib;
@@ -79,15 +81,9 @@ static class Fixer
     /// <summary>Ask the focused window to use an installed layout whose primary language is <paramref name="lang"/> (0x01 Arabic, 0x09 English).</summary>
     static void SwitchTo(int lang)
     {
-        var n = GetKeyboardLayoutList(0, null);
-        var list = new nint[n];
-        GetKeyboardLayoutList(n, list);
-        var hkl = list.FirstOrDefault(h => ((int)h & 0x3FF) == lang);
-        if (hkl != 0) PostMessage(GetForegroundWindow(), 0x0050, 0, hkl); // WM_INPUTLANGCHANGEREQUEST
+        var hkl = Win.Layouts().FirstOrDefault(h => ((int)h & 0x3FF) == lang);
+        if (hkl != 0) PInvoke.PostMessage(PInvoke.GetForegroundWindow(), 0x0050, 0, hkl); // WM_INPUTLANGCHANGEREQUEST
     }
-    [DllImport("user32.dll")] static extern int GetKeyboardLayoutList(int n, nint[]? list);
-    [DllImport("user32.dll")] static extern nint GetForegroundWindow();
-    [DllImport("user32.dll")] static extern bool PostMessage(nint h, uint msg, nint w, nint l);
 
     static readonly string[] OleFormats = { "Embed Source", "Link Source", "Link Source Descriptor", "Object Descriptor", "Ole Private Data" };
 
@@ -181,42 +177,39 @@ static class Fixer
     // ponytail: no clipboard change within 250 ms = nothing selected; raise if slow apps get misread as empty.
     static async Task<string?> Copy()
     {
-        var seq = GetClipboardSequenceNumber();
+        var seq = PInvoke.GetClipboardSequenceNumber();
         Press(Keys.ControlKey, Keys.C);
         var start = Environment.TickCount64;
         while (true)
         {
             await Task.Delay(10);
             var ms = Environment.TickCount64 - start;
-            if (GetClipboardSequenceNumber() != seq) { var t = GetText(); if (!string.IsNullOrEmpty(t)) return t; }
+            if (PInvoke.GetClipboardSequenceNumber() != seq) { var t = GetText(); if (!string.IsNullOrEmpty(t)) return t; }
             else if (ms >= 250) return null;
             if (ms >= 600) return null;
         }
     }
-    [DllImport("user32.dll")] static extern uint GetClipboardSequenceNumber();
 
     /// <summary>Shortcut modifiers may still be physically down; wait so our Ctrl+C isn't mangled (max ~1s).</summary>
     static async Task ReleaseModifiers()
     {
-        for (var i = 0; i < 50 && new[] { 0x10, 0x11, 0x12, 0x5B, 0x5C }.Any(k => (GetAsyncKeyState(k) & 0x8000) != 0); i++)
+        for (var i = 0; i < 50 && new[] { 0x10, 0x11, 0x12, 0x5B, 0x5C }.Any(k => (PInvoke.GetAsyncKeyState(k) & 0x8000) != 0); i++)
             await Task.Delay(20);
     }
-    [DllImport("user32.dll")] static extern short GetAsyncKeyState(int vk);
 
     /// <summary>Sends mod+key down/up in one SendInput call: atomic, so keys the user types can't land in between.</summary>
     static void Press(Keys mod, Keys key)
     {
         var i = new[] { Key(mod, false), Key(key, false), Key(key, true), Key(mod, true) };
-        SendInput((uint)i.Length, i, Marshal.SizeOf<INPUT>());
+        PInvoke.SendInput(i, System.Runtime.InteropServices.Marshal.SizeOf<INPUT>());
     }
 
     // Without KEYEVENTF_EXTENDEDKEY (1), Home etc. are read as the numpad key, and with NumLock on Shift+Numpad7 moves without selecting.
     static readonly Keys[] Extended = { Keys.Home, Keys.End, Keys.Insert, Keys.Delete, Keys.PageUp, Keys.PageDown, Keys.Left, Keys.Right, Keys.Up, Keys.Down };
     /// <summary>Builds one keyboard INPUT event, flagged extended for navigation keys.</summary>
-    static INPUT Key(Keys k, bool up) =>
-        new() { type = 1, ki = new KEYBDINPUT { wVk = (ushort)k, dwFlags = (up ? 2u : 0u) | (Array.IndexOf(Extended, k) >= 0 ? 1u : 0u) } };
-
-    [DllImport("user32.dll")] static extern uint SendInput(uint n, INPUT[] i, int size);
-    [StructLayout(LayoutKind.Sequential)] struct INPUT { public uint type; public KEYBDINPUT ki; long pad; }
-    [StructLayout(LayoutKind.Sequential)] struct KEYBDINPUT { public ushort wVk, wScan; public uint dwFlags, time; public nint extra; }
+    static INPUT Key(Keys k, bool up) => new()
+    {
+        type = INPUT_TYPE.INPUT_KEYBOARD,
+        Anonymous = { ki = new KEYBDINPUT { wVk = (VIRTUAL_KEY)k, dwFlags = (up ? KEYBD_EVENT_FLAGS.KEYEVENTF_KEYUP : 0) | (Array.IndexOf(Extended, k) >= 0 ? KEYBD_EVENT_FLAGS.KEYEVENTF_EXTENDEDKEY : 0) } },
+    };
 }

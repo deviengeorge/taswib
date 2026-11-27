@@ -1,0 +1,6 @@
+GetKeyboardLayoutList
+GetForegroundWindow
+PostMessage
+GetClipboardSequenceNumber
+GetAsyncKeyState
+SendInput
