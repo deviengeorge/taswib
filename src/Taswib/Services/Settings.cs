@@ -57,8 +57,18 @@ public sealed class Settings
     /// <summary>Serializes the settings as indented JSON (used in the debug report).</summary>
     public string ToJson() => JsonSerializer.Serialize(this, Opt);
 
-    /// <summary>Writes to a temp file then moves it over, so a crash mid-write can't corrupt settings.</summary>
+    /// <summary>Writes settings.json, then raises <see cref="Changed"/>.</summary>
     public void Save()
+    {
+        SaveFile();
+        Changed?.Invoke(); // listeners (the tray) re-apply from here, so no caller has to remember to
+    }
+
+    /// <summary>Raised after every <see cref="Save"/>; the tray subscribes to re-register hotkeys and redraw.</summary>
+    public static event Action? Changed;
+
+    /// <summary>Writes to a temp file then moves it over, so a crash mid-write can't corrupt settings.</summary>
+    void SaveFile()
     {
         Directory.CreateDirectory(Path.GetDirectoryName(PathFile)!);
         var tmp = PathFile + ".tmp"; File.WriteAllText(tmp, JsonSerializer.Serialize(this, Opt)); File.Move(tmp, PathFile, overwrite: true);

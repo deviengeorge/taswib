@@ -9,6 +9,8 @@ sealed class TrayContext : ApplicationContext
     readonly Icon normalIcon = Icon.ExtractAssociatedIcon(Environment.ProcessPath!)!;
     readonly NotifyIcon tray = new() { Visible = true, Text = "Taswib" };
     Icon? grayIcon;
+    /// <summary>"Last fix: N chars" shown in the tooltip; setting it redraws the tooltip.</summary>
+    string LastFix { get => lastFix; set { lastFix = value; SetTip(); } }
     string lastFix = "";
     readonly HotkeyWindow win;
     readonly Updater updater;
@@ -24,6 +26,7 @@ sealed class TrayContext : ApplicationContext
         tray.MouseClick += (_, e) => { if (e.Button == MouseButtons.Left) ShowSettings(); }; // one left click opens the app
         win = new HotkeyWindow(async id => await RunFix(id == 1 ? Mode.Fix : Mode.Clean));
         ApplyHotkey();
+        Settings.Changed += ApplyHotkey; // any save (Settings window, news, welcome) re-applies
         updater = new Updater(tray);
         _ = updater.Check(silent: true);
         var recheck = new System.Windows.Forms.Timer { Interval = 4 * 60 * 60 * 1000 }; // PCs that never restart still get updates
@@ -77,7 +80,7 @@ sealed class TrayContext : ApplicationContext
             case Result.Fixed:
                 if (Settings.Current.SoundOnFix) System.Media.SystemSounds.Asterisk.Play();
                 else tray.ShowBalloonTip(1500, "Taswib", T("fixed", len), ToolTipIcon.Info); // no sound: still confirm visibly
-                lastFix = T("lastfix", len); SetTip();
+                LastFix = T("lastfix", len);
                 break;
             case Result.NothingSelected: tray.ShowBalloonTip(3500, "Taswib", T("n_nosel"), ToolTipIcon.Info); break;
             case Result.NoChange: tray.ShowBalloonTip(2500, "Taswib", T("n_nochange"), ToolTipIcon.Info); break;
@@ -149,7 +152,7 @@ sealed class TrayContext : ApplicationContext
         SettingsWindow f;
         do
         {
-            f = openForm = new SettingsWindow(Settings.Current, Startup.IsOn, (s, startup) => { s.Save(); Startup.Set(startup); ApplyHotkey(); }, report => updater.Check(report: report));
+            f = openForm = new SettingsWindow(Settings.Current, Startup.IsOn, report => updater.Check(report: report));
             await Ui.ShowAsync(f);
         } while (f.Reopen);
         settingsOpen = false; openForm = null;
