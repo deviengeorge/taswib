@@ -19,3 +19,9 @@ GlobalLock
 GlobalUnlock
 GlobalSize
 GlobalFree
+RegisterClassEx
+CreateWindowEx
+DefWindowProc
+GetModuleHandle
+RegisterHotKey
+UnregisterHotKey

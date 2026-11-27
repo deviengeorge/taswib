@@ -25,7 +25,7 @@ sealed class TrayContext : ApplicationContext
         tray.ContextMenuStrip = new ContextMenuStrip();
         tray.MouseClick += (_, e) => { if (e.Button == MouseButtons.Left) ShowSettings(); }; // one left click opens the app
         win = new HotkeyWindow(async id => await RunFix(id == 1 ? Mode.Fix : Mode.Clean));
-        Clip.Owner = new(win.Handle); // our clipboard writes need an owner window
+        Clip.Owner = win.Handle; // our clipboard writes need an owner window
         ApplyHotkey();
         Settings.Changed += ApplyHotkey; // any save (Settings window, news, welcome) re-applies
         updater = new Updater(tray);
