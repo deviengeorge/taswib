@@ -72,11 +72,10 @@ public partial class SettingsWindow : Window
         VersionCard.Title = $"Taswib {Program.Version}";
         Update.Click += (_, _) => Flash(Update, 4000, () => checkUpdate(msg => Dispatcher.UIThread.Post(() => Update.Content = msg)));
         Github.Click += (_, _) => Ui.Open($"https://github.com/{Links.Repo}");
-        CopyReport.Click += (_, _) => Flash(CopyReport, 1500, () =>
+        CopyReport.Click += (_, _) => Flash(CopyReport, 1500, async () =>
         {
-            System.Windows.Forms.Clipboard.SetText(Log.Report());
+            await Clipboard!.SetTextAsync(Log.Report());
             CopyReport.Content = T("copied");
-            return Task.CompletedTask;
         });
         OpenLogs.Click += (_, _) => { Directory.CreateDirectory(Log.Dir); Ui.Open(Log.Dir); };
     }

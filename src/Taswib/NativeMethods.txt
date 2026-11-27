@@ -5,3 +5,17 @@ GetClipboardSequenceNumber
 GetAsyncKeyState
 SendInput
 GetKeyState
+OpenClipboard
+CloseClipboard
+EmptyClipboard
+EnumClipboardFormats
+GetClipboardData
+SetClipboardData
+IsClipboardFormatAvailable
+RegisterClipboardFormat
+GetClipboardFormatName
+GlobalAlloc
+GlobalLock
+GlobalUnlock
+GlobalSize
+GlobalFree

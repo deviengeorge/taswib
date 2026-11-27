@@ -27,14 +27,14 @@ static class Fixer
         busy = true;
         var result = Result.NothingSelected;
         var length = 0;
-        Dictionary<string, object>? snap = null;
+        List<(uint Format, byte[] Data)>? snap = null;
         var snapped = false;
         try
         {
             await ReleaseModifiers();
             var before = await HistoryIds();
-            if (cfg.RestoreClipboard) { snap = Snapshot(); snapped = true; } // restore off: nothing to put back, skip the cost
-            Clipboard.Clear();
+            if (cfg.RestoreClipboard) { snap = Clip.Snapshot(); snapped = true; } // restore off: nothing to put back, skip the cost
+            Clip.Clear();
             var sel = await Copy();
             if (sel == null && cfg.Scope != Scope.SelectionOnly)
             {
@@ -55,7 +55,7 @@ static class Fixer
                 if (output == sel) result = Result.NoChange;
                 else
                 {
-                    SetPrivate(output);
+                    Clip.SetText(output);
                     Press(VIRTUAL_KEY.VK_CONTROL, (VIRTUAL_KEY)'V');
                     await Task.Delay(200);
                     if (mode == Mode.Fix && cfg.SwitchLayout) SwitchTo(dir == Direction.ToArabic ? 0x01 : 0x09);
@@ -65,14 +65,14 @@ static class Fixer
                 Log.Write($"{mode} scope={cfg.Scope} dir={dir} len={sel.Length} -> {result}"); // never the text itself
             }
             else Log.Write($"{mode} scope={cfg.Scope}: nothing copied");
-            if (cfg.RestoreClipboard) Restore(snap);
+            if (cfg.RestoreClipboard) Clip.Restore(snap);
             await Task.Delay(400); // history entries appear a moment after the copy
             await PurgeHistory(before);
         }
         catch (Exception e)
         {
             Log.Write("fix failed", e); result = Result.Failed; // e.g. clipboard locked by another app
-            if (snapped) { try { Restore(snap); } catch (Exception e2) { Log.Write("restore after failure failed", e2); } } // best effort: don't leave the user's clipboard wiped
+            if (snapped) { try { Clip.Restore(snap); } catch (Exception e2) { Log.Write("restore after failure failed", e2); } } // best effort: don't leave the user's clipboard wiped
         }
         finally { busy = false; }
         return (result, length);
@@ -83,63 +83,6 @@ static class Fixer
     {
         var hkl = Win.Layouts().FirstOrDefault(h => ((int)h & 0x3FF) == lang);
         if (hkl != 0) PInvoke.PostMessage(PInvoke.GetForegroundWindow(), 0x0050, 0, hkl); // WM_INPUTLANGCHANGEREQUEST
-    }
-
-    static readonly string[] OleFormats = { "Embed Source", "Link Source", "Link Source Descriptor", "Object Descriptor", "Ole Private Data" };
-
-    /// <summary>
-    /// Copies every readable clipboard format so it can be restored later. Skips OLE link formats and
-    /// ones Windows rebuilds from a sibling; stops after a 500 ms budget.
-    /// </summary>
-    /// <returns>Format name to data, or null if the clipboard was empty or unreadable.</returns>
-    static Dictionary<string, object>? Snapshot()
-    {
-        try
-        {
-            var d = Clipboard.GetDataObject();
-            if (d == null) return null;
-            var formats = d.GetFormats(false);
-            bool Has(string f) => Array.IndexOf(formats, f) >= 0;
-            var snap = new Dictionary<string, object>();
-            var start = Environment.TickCount64;
-            foreach (var f in formats)
-            {
-                if (Array.IndexOf(OleFormats, f) >= 0) continue; // live links to the source app: useless once restored
-                if (f == DataFormats.Bitmap && Has(DataFormats.Dib)) continue; // Windows rebuilds these from their sibling
-                if (f == DataFormats.MetafilePict && Has(DataFormats.EnhancedMetafile)) continue;
-                if ((f == DataFormats.Text || f == DataFormats.OemText) && Has(DataFormats.UnicodeText)) continue;
-                // ponytail: 500 ms budget, checked between formats (one slow format can still block). Apps list richest formats first, so a cut loses only extras.
-                if (Environment.TickCount64 - start > 500) { Log.Write($"clipboard snapshot cut at {snap.Count}/{formats.Length} formats"); break; }
-                try { if (d.GetData(f, false) is { } v) snap[f] = v; } catch { /* a format that can't be read is skipped */ }
-            }
-            return snap;
-        }
-        catch (Exception e) { Log.Write("clipboard snapshot failed", e); return null; }
-    }
-
-    /// <summary>Puts a snapshot back on the clipboard (hidden from history); an empty snapshot just clears it.</summary>
-    static void Restore(Dictionary<string, object>? snap)
-    {
-        if (snap == null || snap.Count == 0) { Clipboard.Clear(); return; }
-        var d = new DataObject();
-        foreach (var (f, v) in snap) { try { d.SetData(f, false, v); } catch { } }
-        SetHidden(d);
-    }
-
-    /// <summary>Puts the converted text on the clipboard, hidden from history and cloud sync.</summary>
-    static void SetPrivate(string text)
-    {
-        var d = new DataObject();
-        d.SetText(text);
-        SetHidden(d);
-    }
-
-    /// <summary>Our own clipboard writes are hidden from Win+V history and cloud sync.</summary>
-    static void SetHidden(DataObject d)
-    {
-        foreach (var f in new[] { "ExcludeClipboardContentFromMonitorProcessing", "CanIncludeInClipboardHistory", "CanUploadToCloudClipboard" })
-            d.SetData(f, new MemoryStream(new byte[4]));
-        Clipboard.SetDataObject(d, true);
     }
 
     /// <summary>
@@ -170,21 +113,19 @@ static class Fixer
         catch (Exception e) { Log.Write("history purge failed", e); }
     }
 
-    static string? GetText() => Clipboard.ContainsText() ? Clipboard.GetText() : null;
-
     /// <summary>Ctrl+C, then watch the clipboard sequence number: returns as soon as the copy lands.</summary>
     /// <returns>The copied text, or null if nothing was copied.</returns>
     // ponytail: no clipboard change within 250 ms = nothing selected; raise if slow apps get misread as empty.
     static async Task<string?> Copy()
     {
-        var seq = PInvoke.GetClipboardSequenceNumber();
+        var seq = Clip.Sequence;
         Press(VIRTUAL_KEY.VK_CONTROL, (VIRTUAL_KEY)'C');
         var start = Environment.TickCount64;
         while (true)
         {
             await Task.Delay(10);
             var ms = Environment.TickCount64 - start;
-            if (PInvoke.GetClipboardSequenceNumber() != seq) { var t = GetText(); if (!string.IsNullOrEmpty(t)) return t; }
+            if (Clip.Sequence != seq) { var t = Clip.GetText(); if (!string.IsNullOrEmpty(t)) return t; }
             else if (ms >= 250) return null;
             if (ms >= 600) return null;
         }
