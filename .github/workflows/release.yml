@@ -25,7 +25,7 @@ jobs:
           -p:IncludeNativeLibrariesForSelfExtract=true -p:DebugType=none
           -p:Version=${{ env.VER || '0.0.0' }}
           -o out
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with: { name: Taswib.exe, path: out/Taswib.exe }
       - name: Publish folder for installer (diffs well, so updates are small deltas)
         if: startsWith(github.ref, 'refs/tags/v')
