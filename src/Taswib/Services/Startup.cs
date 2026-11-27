@@ -2,13 +2,15 @@ using Microsoft.Win32;
 
 namespace Taswib;
 
-// "Start with Windows": a value under the current user's Run key.
+/// <summary>"Start with Windows": a value under the current user's Run key.</summary>
 static class Startup
 {
     const string RunKey = @"Software\Microsoft\Windows\CurrentVersion\Run";
 
+    /// <summary>True if the Run entry exists.</summary>
     public static bool IsOn => Registry.CurrentUser.OpenSubKey(RunKey)?.GetValue("Taswib") != null;
 
+    /// <summary>Adds or removes the Run entry. Failures are logged, never thrown.</summary>
     public static void Set(bool on)
     {
         try

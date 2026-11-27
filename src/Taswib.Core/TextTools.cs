@@ -2,6 +2,7 @@ using System.Text;
 
 namespace Taswib.Core;
 
+/// <summary>The "Clean" feature: Arabic punctuation fix and letter normalization.</summary>
 public static class TextTools
 {
     /// <summary>, ? ; become ، ؟ ؛ when the previous visible character is Arabic.</summary>

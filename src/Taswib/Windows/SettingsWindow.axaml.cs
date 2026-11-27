@@ -21,8 +21,10 @@ using FontFamily = Avalonia.Media.FontFamily;
 
 namespace Taswib;
 
+/// <summary>Settings window: sidebar with 6 pages; every change is saved and applied at once.</summary>
 public partial class SettingsWindow : Window
 {
+    /// <summary>Page to show on open; remembered between openings, set by <c>--page</c>.</summary>
     internal static int LastPage;
     readonly Settings s;
     readonly Action<Settings, bool> apply;
@@ -32,8 +34,12 @@ public partial class SettingsWindow : Window
     /// <summary>Set when the language changed: the caller reopens the window so it is laid out for the new language.</summary>
     public bool Reopen { get; private set; }
 
+    /// <summary>Design-time constructor.</summary>
     public SettingsWindow() : this(new Settings(), false, (_, _) => { }, _ => Task.CompletedTask) { } // XAML previewer
 
+    /// <summary>Builds the window and wires every control to <paramref name="s"/>, which it edits in place.</summary>
+    /// <param name="apply">Saves and applies the settings; the bool is the run-at-startup choice.</param>
+    /// <param name="checkUpdate">Runs an update check that sends its messages to the given callback.</param>
     public SettingsWindow(Settings s, bool startupOn, Action<Settings, bool> apply, Func<Action<string>, Task> checkUpdate)
     {
         this.s = s; this.startupOn = startupOn; this.apply = apply;
@@ -86,6 +92,7 @@ public partial class SettingsWindow : Window
         OpenLogs.Click += (_, _) => { Directory.CreateDirectory(Log.Dir); Ui.Open(Log.Dir); };
     }
 
+    /// <summary>Shows one page, hides the others, and sets the page title.</summary>
     void ShowPage(int page)
     {
         if (page < 0) return;
@@ -94,6 +101,7 @@ public partial class SettingsWindow : Window
         PageTitle.Text = T((string)((ListBoxItem)Nav.Items[page]!).Tag!); // Tag = the nav item's text key
     }
 
+    /// <summary>Applies the settings and flashes "Saved" for a moment.</summary>
     void Save()
     {
         apply(s, startupOn);
@@ -101,19 +109,21 @@ public partial class SettingsWindow : Window
         savedTimer.Stop(); savedTimer.Start();
     }
 
-    // Initial value first, then listen: setting it must not count as a change.
+    /// <summary>Binds a toggle to a setting. Initial value first, then listen: setting it must not count as a change.</summary>
     void Tog(ToggleSwitch t, bool v, Action<bool> set)
     {
         t.IsChecked = v;
         t.IsCheckedChanged += (_, _) => { set(t.IsChecked == true); Save(); };
     }
 
+    /// <summary>Binds a segmented choice (ListBox) to a setting by index, same way as Tog.</summary>
     void Seg(ListBox l, int selected, Action<int> set)
     {
         l.SelectedIndex = selected;
         l.SelectionChanged += (_, _) => { if (l.SelectedIndex >= 0) { set(l.SelectedIndex); Save(); } };
     }
 
+    /// <summary>Adds a Contact page card whose button opens the given link.</summary>
     void ContactRow(string title, string value, string btn, string url)
     {
         var b = new Button { Content = T(btn) };

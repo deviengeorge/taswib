@@ -2,12 +2,13 @@ using System.Text;
 
 namespace Taswib.Core;
 
+/// <summary>Conversion direction. Auto picks it from whichever script dominates the text.</summary>
 public enum Direction { Auto, ToArabic, ToEnglish }
 
 /// <summary>US QWERTY &lt;-&gt; Arabic 101 physical-key mapping. Pure, no Windows deps.</summary>
 public static class Mapper
 {
-    // Same key order in both pairs. Arabic tokens are space-separated (some keys give 2 chars: لا).
+    /// <summary>Same key order in both pairs. Arabic tokens are space-separated (some keys give 2 chars: لا).</summary>
     const string EnPlain = "`qwertyuiop[]asdfghjkl;'zxcvbnm,./";
     const string ArPlain = "ذ ض ص ث ق ف غ ع ه خ ح ج د ش س ي ب ل ا ت ن م ك ط ئ ء ؤ ر لا ى ة و ز ظ";
     const string EnShift = "~QWERTYUIOP{}ASDFGHJKL:\"ZXCVBNM<>?";
@@ -24,6 +25,7 @@ public static class Mapper
         for (var i = 0; i < 10; i++) ToEn[(char)('٠' + i)] = (char)('0' + i); // Arabic-Indic digits
     }
 
+    /// <summary>Fills the forward and reverse maps from one parallel key-order table pair.</summary>
     static void Add(string en, string arTokens)
     {
         var ar = arTokens.Split(' ');
@@ -37,6 +39,7 @@ public static class Mapper
         }
     }
 
+    /// <summary>True for chars in the Arabic Unicode block (U+0600..U+06FF).</summary>
     public static bool IsArabic(char c) => c >= '؀' && c <= 'ۿ';
 
     /// <summary>Which way a conversion will go: forced by mode, else by which script dominates.</summary>
@@ -48,7 +51,10 @@ public static class Mapper
         return ar > lat ? Direction.ToEnglish : Direction.ToArabic;
     }
 
+    /// <summary>Retypes text as if it had been typed on the other layout (same physical keys).</summary>
+    /// <param name="mode">Forced direction, or Auto to detect it from the dominant script.</param>
     /// <param name="capsLock">Caps Lock was on while typing: English letters came out inverted, so flip their case before mapping to Arabic.</param>
+    /// <returns>The converted text; chars with no mapping are kept as they are.</returns>
     public static string Convert(string text, Direction mode = Direction.Auto, bool capsLock = false)
     {
         var toEn = Resolve(text, mode) == Direction.ToEnglish;
@@ -70,7 +76,10 @@ public static class Mapper
         return sb.ToString();
     }
 
-    // The b key types ل+ا, exactly what g then h type, so "about" and "high" look alike in Arabic.
+    /// <summary>
+    /// The b key types ل+ا, exactly what g then h type, so "about" and "high" look alike in Arabic.
+    /// Guesses "gh" vs "b" from the English letters around it.
+    /// </summary>
     // ponytail: spelling guess from the letters around it; misses "doubt", "neighbor", "ghost". Add a word list if users hit these.
     static bool LooksLikeGh(StringBuilder done, string text, int next)
     {

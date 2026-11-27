@@ -3,7 +3,7 @@ using static Taswib.Strings;
 
 namespace Taswib;
 
-// Tray icon, menu, hotkeys, windows and update checks: everything the user sees outside the fix itself.
+/// <summary>Tray icon, menu, hotkeys, windows and update checks: everything the user sees outside the fix itself.</summary>
 sealed class TrayContext : ApplicationContext
 {
     readonly Icon normalIcon = Icon.ExtractAssociatedIcon(Environment.ProcessPath!)!;
@@ -13,6 +13,8 @@ sealed class TrayContext : ApplicationContext
     readonly HotkeyWindow win;
     readonly Updater updater;
 
+    /// <summary>Sets up tray, hotkeys and update checks, then opens Settings, Welcome or News as needed.</summary>
+    /// <param name="wake">Signaled when a second copy starts; this copy then opens Settings.</param>
     public TrayContext(EventWaitHandle wake)
     {
         var ui = new Control(); _ = ui.Handle; // handle on the UI thread, so the wait callback can hop back with BeginInvoke
@@ -38,6 +40,7 @@ sealed class TrayContext : ApplicationContext
         else After(1500, ShowNews);
     }
 
+    /// <summary>Runs an action once after a delay, on the UI thread (WinForms timer).</summary>
     internal static void After(int ms, Action a)
     {
         var t = new System.Windows.Forms.Timer { Interval = ms };
@@ -45,7 +48,7 @@ sealed class TrayContext : ApplicationContext
         t.Start();
     }
 
-    // Only releases that bring a new feature have a WhatsNew entry; everything else stays silent.
+    /// <summary>Shows What's New once per version. Only releases that bring a new feature have an entry; the rest stay silent.</summary>
     async void ShowNews()
     {
         var s = Settings.Current;
@@ -55,6 +58,7 @@ sealed class TrayContext : ApplicationContext
         if (s.LastNewsVersion != cur) { s.LastNewsVersion = cur; s.Save(); }
     }
 
+    /// <summary>First run: shows the Welcome window, then Settings if the user asked for it.</summary>
     async void ShowWelcome()
     {
         Settings.Current.LastNewsVersion = Program.Version.ToString(); // new installs skip old news
@@ -64,6 +68,7 @@ sealed class TrayContext : ApplicationContext
         if (w.OpenSettings) ShowSettings();
     }
 
+    /// <summary>Runs a fix or clean on the selection and confirms the result with a sound or tray balloon.</summary>
     async Task RunFix(Mode mode)
     {
         var (r, len) = await Fixer.Run(mode, Settings.Current);
@@ -80,6 +85,7 @@ sealed class TrayContext : ApplicationContext
         }
     }
 
+    /// <summary>Rebuilds the tray right-click menu in the current language.</summary>
     void BuildMenu()
     {
         var m = tray.ContextMenuStrip!;
@@ -95,6 +101,7 @@ sealed class TrayContext : ApplicationContext
         });
     }
 
+    /// <summary>Sets the tray tooltip: the hotkey (or "disabled") plus the last fix.</summary>
     void SetTip()
     {
         var s = Settings.Current;
@@ -102,6 +109,7 @@ sealed class TrayContext : ApplicationContext
         tray.Text = text.Length > 63 ? text[..63] : text; // NotifyIcon.Text throws above 63 characters
     }
 
+    /// <summary>Grayscale copy of the icon, shown in the tray while Taswib is disabled.</summary>
     static Icon Gray(Icon icon)
     {
         using var src = icon.ToBitmap();
@@ -115,6 +123,7 @@ sealed class TrayContext : ApplicationContext
         return Icon.FromHandle(dst.GetHicon());
     }
 
+    /// <summary>Applies settings to the tray (menu, icon, tip) and re-registers both hotkeys; warns if one is taken.</summary>
     void ApplyHotkey()
     {
         var s = Settings.Current;
@@ -131,6 +140,7 @@ sealed class TrayContext : ApplicationContext
         }
     }
 
+    /// <summary>Opens Settings (or focuses it if open), reopening after a language change. Hotkeys are off meanwhile.</summary>
     async void ShowSettings()
     {
         if (settingsOpen) { openForm?.Activate(); return; } // already open: bring it to the front

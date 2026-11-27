@@ -8,9 +8,11 @@ namespace Taswib;
 static class Log
 {
     static readonly object L = new();
+    /// <summary>Log folder: %LOCALAPPDATA%\Taswib.</summary>
     public static readonly string Dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Taswib");
     static readonly string LogPath = Path.Combine(Dir, "taswib.log");
 
+    /// <summary>Appends a timestamped line; rotates to .old past 256 KB. Never throws.</summary>
     public static void Write(string msg)
     {
         try
@@ -25,8 +27,10 @@ static class Log
         catch { /* logging must never break the app */ }
     }
 
+    /// <summary>Logs the message with the exception type and message (no stack trace).</summary>
     public static void Write(string msg, Exception e) => Write($"{msg}: {e.GetType().Name}: {e.Message}");
 
+    /// <summary>Debug info for bug reports: version, OS, layouts, clipboard history, settings and last 80 log lines.</summary>
     public static string Report()
     {
         var layouts = "?";

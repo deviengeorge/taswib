@@ -1,6 +1,6 @@
 namespace Taswib;
 
-// UI text. Arabic is Egyptian, not MSA.
+/// <summary>UI text as (English, Arabic) pairs by key. Arabic is Egyptian, not MSA.</summary>
 static class Strings
 {
     static readonly Dictionary<string, (string En, string Ar)> T_ = new()
@@ -89,7 +89,9 @@ static class Strings
         ["disabled"] = ("disabled", "موقوف"),
     };
 
+    /// <summary>True when the UI language setting is Arabic.</summary>
     public static bool Arabic => Settings.Current.Language == "ar";
+    /// <summary>Looks up a UI string in the current language and fills <c>{0}</c>-style placeholders from args.</summary>
     public static string T(string key, params object[] args)
     {
         var (en, ar) = T_[key];

@@ -4,15 +4,21 @@ using WinClip = Windows.ApplicationModel.DataTransfer.Clipboard;
 
 namespace Taswib;
 
+/// <summary>Fix converts the keyboard layout; Clean fixes punctuation and normalizes letters.</summary>
 enum Mode { Fix, Clean }
+/// <summary>Outcome of one hotkey run. Busy means a previous run was still going.</summary>
 enum Result { Fixed, NothingSelected, NoChange, Failed, Busy }
 
-// The fix flow: copy the selection, convert it, paste it back, then restore the clipboard and hide our traces.
+/// <summary>The fix flow: copy the selection, convert it, paste it back, then restore the clipboard and hide our traces.</summary>
 static class Fixer
 {
     static bool busy;
 
-    // Returns the outcome and the length of the text it fixed (0 unless Fixed). Settings come in as a parameter, not read globally.
+    /// <summary>
+    /// Runs one Fix or Clean on the focused app's selection (or line/all per <c>cfg.Scope</c>).
+    /// Settings come in as a parameter, not read globally. Only one run at a time.
+    /// </summary>
+    /// <returns>The outcome and the length of the text it fixed (0 unless Fixed).</returns>
     public static async Task<(Result Result, int Length)> Run(Mode mode, Settings cfg)
     {
         if (busy) return (Result.Busy, 0);
@@ -70,7 +76,7 @@ static class Fixer
         return (result, length);
     }
 
-    // Ask the focused window to use an installed layout whose primary language is `lang` (0x01 Arabic, 0x09 English).
+    /// <summary>Ask the focused window to use an installed layout whose primary language is <paramref name="lang"/> (0x01 Arabic, 0x09 English).</summary>
     static void SwitchTo(int lang)
     {
         var n = GetKeyboardLayoutList(0, null);
@@ -85,6 +91,11 @@ static class Fixer
 
     static readonly string[] OleFormats = { "Embed Source", "Link Source", "Link Source Descriptor", "Object Descriptor", "Ole Private Data" };
 
+    /// <summary>
+    /// Copies every readable clipboard format so it can be restored later. Skips OLE link formats and
+    /// ones Windows rebuilds from a sibling; stops after a 500 ms budget.
+    /// </summary>
+    /// <returns>Format name to data, or null if the clipboard was empty or unreadable.</returns>
     static Dictionary<string, object>? Snapshot()
     {
         try
@@ -110,6 +121,7 @@ static class Fixer
         catch (Exception e) { Log.Write("clipboard snapshot failed", e); return null; }
     }
 
+    /// <summary>Puts a snapshot back on the clipboard (hidden from history); an empty snapshot just clears it.</summary>
     static void Restore(Dictionary<string, object>? snap)
     {
         if (snap == null || snap.Count == 0) { Clipboard.Clear(); return; }
@@ -118,6 +130,7 @@ static class Fixer
         SetHidden(d);
     }
 
+    /// <summary>Puts the converted text on the clipboard, hidden from history and cloud sync.</summary>
     static void SetPrivate(string text)
     {
         var d = new DataObject();
@@ -125,7 +138,7 @@ static class Fixer
         SetHidden(d);
     }
 
-    // Our own clipboard writes are hidden from Win+V history and cloud sync.
+    /// <summary>Our own clipboard writes are hidden from Win+V history and cloud sync.</summary>
     static void SetHidden(DataObject d)
     {
         foreach (var f in new[] { "ExcludeClipboardContentFromMonitorProcessing", "CanIncludeInClipboardHistory", "CanUploadToCloudClipboard" })
@@ -133,7 +146,11 @@ static class Fixer
         Clipboard.SetDataObject(d, true);
     }
 
-    // The app's own Ctrl+C lands in Win+V history; remove whatever appeared during our run.
+    /// <summary>
+    /// The app's own Ctrl+C lands in Win+V history; remove whatever appeared during our run.
+    /// This records the item ids before the run.
+    /// </summary>
+    /// <returns>Current history ids, or null if history is off or unreadable (then nothing is purged).</returns>
     static async Task<HashSet<string>?> HistoryIds()
     {
         try
@@ -145,6 +162,7 @@ static class Fixer
         catch (Exception e) { Log.Write("history read failed", e); return null; }
     }
 
+    /// <summary>Deletes Win+V history items that were not in <paramref name="before"/>, i.e. our own copies.</summary>
     static async Task PurgeHistory(HashSet<string>? before)
     {
         if (before == null) return;
@@ -158,7 +176,8 @@ static class Fixer
 
     static string? GetText() => Clipboard.ContainsText() ? Clipboard.GetText() : null;
 
-    // Ctrl+C, then watch the clipboard sequence number: returns as soon as the copy lands.
+    /// <summary>Ctrl+C, then watch the clipboard sequence number: returns as soon as the copy lands.</summary>
+    /// <returns>The copied text, or null if nothing was copied.</returns>
     // ponytail: no clipboard change within 250 ms = nothing selected; raise if slow apps get misread as empty.
     static async Task<string?> Copy()
     {
@@ -176,7 +195,7 @@ static class Fixer
     }
     [DllImport("user32.dll")] static extern uint GetClipboardSequenceNumber();
 
-    // Shortcut modifiers may still be physically down; wait so our Ctrl+C isn't mangled (max ~1s).
+    /// <summary>Shortcut modifiers may still be physically down; wait so our Ctrl+C isn't mangled (max ~1s).</summary>
     static async Task ReleaseModifiers()
     {
         for (var i = 0; i < 50 && new[] { 0x10, 0x11, 0x12, 0x5B, 0x5C }.Any(k => (GetAsyncKeyState(k) & 0x8000) != 0); i++)
@@ -184,7 +203,7 @@ static class Fixer
     }
     [DllImport("user32.dll")] static extern short GetAsyncKeyState(int vk);
 
-    // One SendInput call: the 4 events are atomic, so keys the user types can't land in between.
+    /// <summary>Sends mod+key down/up in one SendInput call: atomic, so keys the user types can't land in between.</summary>
     static void Press(Keys mod, Keys key)
     {
         var i = new[] { Key(mod, false), Key(key, false), Key(key, true), Key(mod, true) };
@@ -193,6 +212,7 @@ static class Fixer
 
     // Without KEYEVENTF_EXTENDEDKEY (1), Home etc. are read as the numpad key, and with NumLock on Shift+Numpad7 moves without selecting.
     static readonly Keys[] Extended = { Keys.Home, Keys.End, Keys.Insert, Keys.Delete, Keys.PageUp, Keys.PageDown, Keys.Left, Keys.Right, Keys.Up, Keys.Down };
+    /// <summary>Builds one keyboard INPUT event, flagged extended for navigation keys.</summary>
     static INPUT Key(Keys k, bool up) =>
         new() { type = 1, ki = new KEYBDINPUT { wVk = (ushort)k, dwFlags = (up ? 2u : 0u) | (Array.IndexOf(Extended, k) >= 0 ? 1u : 0u) } };
 

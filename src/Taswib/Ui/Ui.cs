@@ -21,24 +21,31 @@ using FontFamily = Avalonia.Media.FontFamily;
 
 namespace Taswib;
 
+/// <summary>Avalonia application: loads the shared styles and light/dark colors from App.axaml.</summary>
 public partial class App : Application
 {
+    /// <summary>Loads App.axaml.</summary>
     public override void Initialize() => AvaloniaXamlLoader.Load(this);
 }
 
 /// <summary>XAML text lookup: <c>Text="{l:Tr enabled}"</c>.</summary>
 public sealed class Tr : Avalonia.Markup.Xaml.MarkupExtension
 {
+    /// <summary>Creates the lookup for one Strings key.</summary>
     public Tr(string key) => Key = key;
+    /// <summary>Strings key to look up.</summary>
     public string Key { get; set; }
+    /// <summary>Returns the text for the key in the current UI language.</summary>
     public override object ProvideValue(IServiceProvider _) => T(Key);
 }
 
+/// <summary>Avalonia helpers shared by all windows.</summary>
 static class Ui
 {
-    // Bundled (OFL), so Arabic looks the same on every PC; English keeps Segoe UI.
+    /// <summary>Cairo, bundled (OFL), so Arabic looks the same on every PC; English keeps Segoe UI.</summary>
     public static readonly FontFamily ArabicFont = new($"avares://{typeof(Ui).Assembly.GetName().Name}/Assets/Fonts#Cairo");
 
+    /// <summary>Starts Avalonia without its own message loop; the WinForms loop pumps it.</summary>
     public static void Setup() => AppBuilder.Configure<App>().UseWin32().UseSkia().SetupWithoutStarting();
 
     /// <summary>Show a window and wait until it closes (the tray app has no owner window for ShowDialog).</summary>
@@ -51,12 +58,14 @@ static class Ui
         return done.Task;
     }
 
+    /// <summary>Opens a URL or folder with its default app.</summary>
     public static void Open(string url) => Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
 }
 
 /// <summary>Tray menu icons (WinForms menu): 16px bitmaps from the Windows icon font.</summary>
 static class Icons
 {
+    /// <summary>Draws one Segoe MDL2 Assets glyph as a 16px gray bitmap.</summary>
     public static System.Drawing.Bitmap Glyph(char c)
     {
         var bmp = new System.Drawing.Bitmap(16, 16);

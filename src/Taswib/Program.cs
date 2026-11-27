@@ -5,12 +5,13 @@ using Velopack;
 
 namespace Taswib;
 
-// Entry point: single instance, crash logging, then hands off to TrayContext.
+/// <summary>Entry point: single instance, crash logging, then hands off to TrayContext.</summary>
 static class Program
 {
-    // Assembly version trimmed to Major.Minor.Build (the 4th part is always 0).
+    /// <summary>Assembly version trimmed to Major.Minor.Build (the 4th part is always 0).</summary>
     public static Version Version { get { var v = Assembly.GetExecutingAssembly().GetName().Version!; return new Version(v.Major, v.Minor, v.Build); } }
 
+    /// <summary>Runs Velopack hooks, enforces one instance (a second launch wakes the first), then starts the tray.</summary>
     [STAThread]
     static void Main()
     {

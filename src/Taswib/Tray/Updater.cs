@@ -6,15 +6,18 @@ using static Taswib.Strings;
 
 namespace Taswib;
 
-// Checks GitHub for a newer release.
-// Installed copy (Setup.exe): download it and restart into it. Portable exe: point the user at the release page.
+/// <summary>
+/// Checks GitHub for a newer release.
+/// Installed copy (Setup.exe): download it and restart into it. Portable exe: point the user at the release page.
+/// </summary>
 sealed class Updater(NotifyIcon tray)
 {
     bool retryPending;
 
-    // silent:  background check, only speaks when there is news.
-    // restart: restart into a downloaded update now (false = it applies on next start).
-    // report:  Settings page callback; without it messages go to the tray balloon.
+    /// <summary>Checks for an update and installs or announces it. Failures are logged and reported, never thrown.</summary>
+    /// <param name="silent">Background check: only speaks when there is news.</param>
+    /// <param name="restart">Restart into a downloaded update now (false = it applies on next start).</param>
+    /// <param name="report">Settings page callback; without it messages go to the tray balloon.</param>
     public async Task Check(bool silent = false, bool restart = true, Action<string>? report = null)
     {
         var say = new Say(tray, report, silent);
@@ -34,12 +37,14 @@ sealed class Updater(NotifyIcon tray)
         }
     }
 
+    /// <summary>Velopack manager for GitHub releases, or for a local folder when TASWIB_UPDATE_FEED is set (CI).</summary>
     static UpdateManager Manager()
     {
         var feed = Environment.GetEnvironmentVariable("TASWIB_UPDATE_FEED"); // CI update test serves releases from a local folder
         return string.IsNullOrEmpty(feed) ? new UpdateManager(new GithubSource($"https://github.com/{Links.Repo}", null, false)) : new UpdateManager(feed);
     }
 
+    /// <summary>Installed copy: downloads the update with Velopack, then restarts into it or leaves it for next start.</summary>
     static async Task UpdateInstalled(UpdateManager mgr, Say say, bool restart)
     {
         var info = await mgr.CheckForUpdatesAsync();
@@ -57,6 +62,7 @@ sealed class Updater(NotifyIcon tray)
         else say.Always(T("ready", version), 5000); // Velopack applies it on next start; WaitExitThenApplyUpdates would kill the app after 60 s
     }
 
+    /// <summary>Portable exe: compares with the latest GitHub release and opens its page (silent checks only notify).</summary>
     static async Task CheckPortable(Say say)
     {
         using var http = new HttpClient();
@@ -69,6 +75,7 @@ sealed class Updater(NotifyIcon tray)
         Process.Start(new ProcessStartInfo(rel.html_url) { UseShellExecute = true });
     }
 
+    /// <summary>True if any exception in the chain is a network failure.</summary>
     static bool IsOffline(Exception e)
     {
         for (var x = e; x != null; x = x.InnerException)
@@ -76,7 +83,7 @@ sealed class Updater(NotifyIcon tray)
         return false;
     }
 
-    // Started at login before Wi-Fi connected: try again in 30 min instead of waiting for the 4-hour check.
+    /// <summary>Started at login before Wi-Fi connected: try again in 30 min instead of waiting for the 4-hour check.</summary>
     void RetryLater()
     {
         if (retryPending) return;
@@ -84,14 +91,18 @@ sealed class Updater(NotifyIcon tray)
         TrayContext.After(30 * 60 * 1000, () => { retryPending = false; _ = Check(silent: true, restart: false); }); // no restart mid-use
     }
 
-    // Where messages go: the Settings page if it asked, else the tray. Silent checks drop Info and Progress.
+    /// <summary>Where messages go: the Settings page if it asked, else the tray. Silent checks drop Info and Progress.</summary>
     sealed record Say(NotifyIcon Tray, Action<string>? Report, bool Silent)
     {
+        /// <summary>Shows a message, unless the check is silent.</summary>
         public void Info(string msg, ToolTipIcon icon = ToolTipIcon.Info, int ms = 3000) { if (!Silent) Show(msg, icon, ms); }
+        /// <summary>Shows a message even on a silent check (news worth telling).</summary>
         public void Always(string msg, int ms) => Show(msg, ToolTipIcon.Info, ms);
+        /// <summary>Shows download progress on the Settings page or tray tooltip (no balloon), unless silent.</summary>
         public void Progress(string msg) { if (Silent) return; if (Report != null) Report(msg); else Tray.Text = msg; }
         void Show(string msg, ToolTipIcon icon, int ms) { if (Report != null) Report(msg); else Tray.ShowBalloonTip(ms, "Taswib", msg, icon); }
     }
 
+    /// <summary>The fields used from GitHub's latest-release JSON (names match the API).</summary>
     record Release(string tag_name, string html_url);
 }
