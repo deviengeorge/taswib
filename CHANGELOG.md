@@ -2,6 +2,13 @@
 
 User-facing changes per release. Updates download as a small delta (~130 KB, ~60 KB on the `fd` channel).
 
+## 0.10.0 — 2026-11-27
+- Taswib no longer closes and reopens by itself after login when it finds an update; the update installs the next time Taswib starts.
+- Your clipboard comes back exactly as it was after a fix, and Taswib's temporary text stays out of Win+V history.
+- Notices (fixed, nothing selected, shortcut taken) show as a small popup in the screen corner instead of a Windows balloon.
+- More keys work in the shortcut box, such as comma and period.
+- Runs on .NET 10, and the download is smaller. The small installer needs only the .NET 10 Runtime, not the Desktop Runtime.
+
 ## 0.9.1 — 2026-11-26
 - Settings, Welcome and What's new show only the close button again (no minimize/maximize).
 

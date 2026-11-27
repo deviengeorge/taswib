@@ -6,7 +6,7 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <ImplicitUsings>enable</ImplicitUsings>
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
-    <Version>0.9.1</Version>
+    <Version>0.10.0</Version>
     <ApplicationIcon>taswib.ico</ApplicationIcon>
     <AssemblyName>Taswib</AssemblyName>
     <ApplicationManifest>app.manifest</ApplicationManifest>
