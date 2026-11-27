@@ -11,18 +11,18 @@ enum Result { Fixed, NothingSelected, NoChange, Failed, Busy }
 static class Fixer
 {
     static bool busy;
-    public static int LastLen;
 
-    public static async Task<Result> Run(Mode mode)
+    // Returns the outcome and the length of the text it fixed (0 unless Fixed). Settings come in as a parameter, not read globally.
+    public static async Task<(Result Result, int Length)> Run(Mode mode, Settings cfg)
     {
-        if (busy) return Result.Busy;
+        if (busy) return (Result.Busy, 0);
         busy = true;
         var result = Result.NothingSelected;
+        var length = 0;
         Dictionary<string, object>? snap = null;
         var snapped = false;
         try
         {
-            var cfg = Settings.Current;
             await ReleaseModifiers();
             var before = await HistoryIds();
             if (cfg.RestoreClipboard) { snap = Snapshot(); snapped = true; } // restore off: nothing to put back, skip the cost
@@ -51,7 +51,7 @@ static class Fixer
                     Press(Keys.ControlKey, Keys.V);
                     await Task.Delay(200);
                     if (mode == Mode.Fix && cfg.SwitchLayout) SwitchTo(dir == Direction.ToArabic ? 0x01 : 0x09);
-                    LastLen = sel.Length;
+                    length = sel.Length;
                     result = Result.Fixed;
                 }
                 Log.Write($"{mode} scope={cfg.Scope} dir={dir} len={sel.Length} -> {result}"); // never the text itself
@@ -67,7 +67,7 @@ static class Fixer
             if (snapped) { try { Restore(snap); } catch (Exception e2) { Log.Write("restore after failure failed", e2); } } // best effort: don't leave the user's clipboard wiped
         }
         finally { busy = false; }
-        return result;
+        return (result, length);
     }
 
     // Ask the focused window to use an installed layout whose primary language is `lang` (0x01 Arabic, 0x09 English).

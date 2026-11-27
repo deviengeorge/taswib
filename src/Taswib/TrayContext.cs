@@ -68,13 +68,13 @@ sealed class TrayContext : ApplicationContext
 
     async Task RunFix(Mode mode)
     {
-        var r = await Fixer.Run(mode);
+        var (r, len) = await Fixer.Run(mode, Settings.Current);
         switch (r)
         {
             case Result.Fixed:
                 if (Settings.Current.SoundOnFix) System.Media.SystemSounds.Asterisk.Play();
-                else tray.ShowBalloonTip(1500, "Taswib", T("fixed", Fixer.LastLen), ToolTipIcon.Info); // no sound: still confirm visibly
-                lastFix = T("lastfix", Fixer.LastLen); SetTip();
+                else tray.ShowBalloonTip(1500, "Taswib", T("fixed", len), ToolTipIcon.Info); // no sound: still confirm visibly
+                lastFix = T("lastfix", len); SetTip();
                 break;
             case Result.NothingSelected: tray.ShowBalloonTip(3500, "Taswib", T("n_nosel"), ToolTipIcon.Info); break;
             case Result.NoChange: tray.ShowBalloonTip(2500, "Taswib", T("n_nochange"), ToolTipIcon.Info); break;
