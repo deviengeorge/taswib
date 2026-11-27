@@ -1,0 +1,10 @@
+version: 2
+updates:
+  - package-ecosystem: nuget
+    directory: /
+    schedule: { interval: weekly }
+    groups:
+      avalonia: { patterns: ['Avalonia*'] } # all Avalonia packages must share one version
+  - package-ecosystem: github-actions
+    directory: /
+    schedule: { interval: monthly }
