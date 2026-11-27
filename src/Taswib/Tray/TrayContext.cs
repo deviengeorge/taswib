@@ -28,7 +28,7 @@ sealed class TrayContext : ApplicationContext
         ApplyHotkey();
         Settings.Changed += ApplyHotkey; // any save (Settings window, news, welcome) re-applies
         updater = new Updater(tray);
-        _ = updater.Check(silent: true);
+        _ = updater.Check(silent: true, restart: false); // never restart on its own; the update applies on next start
         var recheck = new System.Windows.Forms.Timer { Interval = 4 * 60 * 60 * 1000 }; // PCs that never restart still get updates
         recheck.Tick += (_, _) => _ = updater.Check(silent: true, restart: false);
         recheck.Start();
