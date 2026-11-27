@@ -10,12 +10,12 @@
         <TextBlock Text="Taswib" FontWeight="SemiBold" VerticalAlignment="Center"/>
       </StackPanel>
       <ListBox x:Name="Nav" Classes="nav">
-        <ListBoxItem><StackPanel Orientation="Horizontal" Spacing="12"><PathIcon Data="{StaticResource ic_settings}"/><TextBlock Text="{l:Tr nav_general}"/></StackPanel></ListBoxItem>
-        <ListBoxItem><StackPanel Orientation="Horizontal" Spacing="12"><PathIcon Data="{StaticResource ic_keyboard}"/><TextBlock Text="{l:Tr nav_shortcuts}"/></StackPanel></ListBoxItem>
-        <ListBoxItem><StackPanel Orientation="Horizontal" Spacing="12"><PathIcon Data="{StaticResource ic_rename}"/><TextBlock Text="{l:Tr nav_fix}"/></StackPanel></ListBoxItem>
-        <ListBoxItem><StackPanel Orientation="Horizontal" Spacing="12"><PathIcon Data="{StaticResource ic_delete}"/><TextBlock Text="{l:Tr nav_clean}"/></StackPanel></ListBoxItem>
-        <ListBoxItem><StackPanel Orientation="Horizontal" Spacing="12"><PathIcon Data="{StaticResource ic_mail}"/><TextBlock Text="{l:Tr nav_contact}"/></StackPanel></ListBoxItem>
-        <ListBoxItem><StackPanel Orientation="Horizontal" Spacing="12"><PathIcon Data="{StaticResource ic_info}"/><TextBlock Text="{l:Tr nav_about}"/></StackPanel></ListBoxItem>
+        <ListBoxItem Tag="nav_general"><StackPanel Orientation="Horizontal" Spacing="12"><PathIcon Data="{StaticResource ic_settings}"/><TextBlock Text="{l:Tr nav_general}"/></StackPanel></ListBoxItem>
+        <ListBoxItem Tag="nav_shortcuts"><StackPanel Orientation="Horizontal" Spacing="12"><PathIcon Data="{StaticResource ic_keyboard}"/><TextBlock Text="{l:Tr nav_shortcuts}"/></StackPanel></ListBoxItem>
+        <ListBoxItem Tag="nav_fix"><StackPanel Orientation="Horizontal" Spacing="12"><PathIcon Data="{StaticResource ic_rename}"/><TextBlock Text="{l:Tr nav_fix}"/></StackPanel></ListBoxItem>
+        <ListBoxItem Tag="nav_clean"><StackPanel Orientation="Horizontal" Spacing="12"><PathIcon Data="{StaticResource ic_delete}"/><TextBlock Text="{l:Tr nav_clean}"/></StackPanel></ListBoxItem>
+        <ListBoxItem Tag="nav_contact"><StackPanel Orientation="Horizontal" Spacing="12"><PathIcon Data="{StaticResource ic_mail}"/><TextBlock Text="{l:Tr nav_contact}"/></StackPanel></ListBoxItem>
+        <ListBoxItem Tag="nav_about"><StackPanel Orientation="Horizontal" Spacing="12"><PathIcon Data="{StaticResource ic_info}"/><TextBlock Text="{l:Tr nav_about}"/></StackPanel></ListBoxItem>
       </ListBox>
     </StackPanel>
 

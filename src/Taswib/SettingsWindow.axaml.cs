@@ -92,7 +92,7 @@ public partial class SettingsWindow : Window
         if (page < 0) return;
         LastPage = page;
         for (var i = 0; i < Pages.Children.Count; i++) Pages.Children[i].IsVisible = i == page;
-        PageTitle.Text = ((TextBlock)((StackPanel)((ListBoxItem)Nav.Items[page]!).Content!).Children[1]).Text;
+        PageTitle.Text = T((string)((ListBoxItem)Nav.Items[page]!).Tag!); // Tag = the nav item's text key
     }
 
     void Save()
