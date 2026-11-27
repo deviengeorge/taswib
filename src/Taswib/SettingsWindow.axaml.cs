@@ -66,8 +66,7 @@ public partial class SettingsWindow : Window
         ContactRow("c_linkedin", Links.LinkedInShort, "open", Links.LinkedIn);
         if (Links.TelegramUser != "") ContactRow("c_telegram", "@" + Links.TelegramUser, "btn_chat", "https://t.me/" + Links.TelegramUser);
 
-        var ver = Assembly.GetExecutingAssembly().GetName().Version!;
-        VersionCard.Title = $"Taswib {ver.Major}.{ver.Minor}.{ver.Build}";
+        VersionCard.Title = $"Taswib {Program.Version}";
         Update.Click += async (_, _) =>
         {
             var old = Update.Content;
@@ -76,7 +75,7 @@ public partial class SettingsWindow : Window
             await Task.Delay(4000);
             Update.Content = old; Update.IsEnabled = true;
         };
-        Github.Click += (_, _) => Ui.Open("https://github.com/deviengeorge/taswib");
+        Github.Click += (_, _) => Ui.Open($"https://github.com/{Links.Repo}");
         CopyReport.Click += async (_, _) =>
         {
             System.Windows.Forms.Clipboard.SetText(Log.Report());

@@ -29,7 +29,6 @@ static class Log
 
     public static string Report()
     {
-        var ver = Assembly.GetExecutingAssembly().GetName().Version!;
         var layouts = "?";
         try
         {
@@ -43,7 +42,7 @@ static class Log
         string tail;
         try { tail = string.Join(Environment.NewLine, File.ReadLines(LogPath).TakeLast(80)); } catch { tail = "(no log yet)"; }
         return $"""
-            Taswib {ver.Major}.{ver.Minor}.{ver.Build}
+            Taswib {Program.Version}
             OS: {RuntimeInformation.OSDescription} ({RuntimeInformation.OSArchitecture})
             .NET: {RuntimeInformation.FrameworkDescription}
             UI culture: {System.Globalization.CultureInfo.CurrentUICulture.Name}

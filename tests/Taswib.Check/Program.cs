@@ -19,4 +19,13 @@ Eq(TextTools.Normalize("مُحَمَّد كــلام"), "محمد كلام");  
 foreach (var w in new[] { "about", "table", "club", "possible", "high", "right", "though", "laughs", "roughly", "eight" })
     Eq(Mapper.Convert(Mapper.Convert(w)), w);
 Eq(Mapper.Convert("لأ"), "G");                                        // Shift+G types two chars too
+// Hotkey text: parse, reject typos, and round-trip what the recorder writes.
+bool Hk(string s, out string r) { var ok = Hotkey.TryParse(s, out var m, out var k); r = ok ? $"{m}:{k}" : "fail"; return ok; }
+Hk("Ctrl+Shift+Space", out var h); Eq(h, "6:Space");
+Hk("Insert", out h); Eq(h, "0:Insert");                       // bare key allowed (the default)
+Hk("Shift+Pause", out h); Eq(h, "4:Pause");
+Hk("Crtl+K", out h); Eq(h, "fail");                           // typo must not register bare K
+Hk("Ctrl+", out h); Eq(h, "fail");
+Eq(Hotkey.Format(Hotkey.Alt | Hotkey.Ctrl | Hotkey.Shift, "F9"), "Ctrl+Shift+Alt+F9");
+Hk(Hotkey.Format(Hotkey.Ctrl | Hotkey.Win, "D1"), out h); Eq(h, "10:D1");
 Console.WriteLine("ok");

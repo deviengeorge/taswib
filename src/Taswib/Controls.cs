@@ -74,8 +74,8 @@ public sealed class HotkeyBox : Border
             Show(T("hk_bare")); hintTimer.Stop(); hintTimer.Start();
             return;
         }
-        var mods = (m.HasFlag(KeyModifiers.Control) ? Keys.Control : 0) | (m.HasFlag(KeyModifiers.Shift) ? Keys.Shift : 0) | (m.HasFlag(KeyModifiers.Alt) ? Keys.Alt : 0);
-        Set(Settings.FormatHotkey(mods, key));
+        var mods = (m.HasFlag(KeyModifiers.Control) ? Taswib.Core.Hotkey.Ctrl : 0) | (m.HasFlag(KeyModifiers.Shift) ? Taswib.Core.Hotkey.Shift : 0) | (m.HasFlag(KeyModifiers.Alt) ? Taswib.Core.Hotkey.Alt : 0);
+        Set(Taswib.Core.Hotkey.Format(mods, key.ToString()));
     }
 
     // Keys that are safe to own globally with no modifier.

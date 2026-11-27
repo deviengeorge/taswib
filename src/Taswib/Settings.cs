@@ -45,23 +45,10 @@ public sealed class Settings
         var tmp = PathFile + ".tmp"; File.WriteAllText(tmp, JsonSerializer.Serialize(this, Opt)); File.Move(tmp, PathFile, overwrite: true);
     }
 
-    // Hotkey string "Ctrl+Shift+Space" <-> (modifier flags, key)
+    // Text parsing lives in Taswib.Core.Hotkey (tested there); this only maps the key name to Keys.
     public static bool TryParseHotkey(string s, out uint mod, out Keys key)
     {
-        mod = 0; key = Keys.None;
-        var parts = s.Split('+', StringSplitOptions.TrimEntries);
-        foreach (var p in parts[..^1])
-            mod |= p switch { "Alt" => 1u, "Ctrl" => 2u, "Shift" => 4u, "Win" => 8u, _ => 0u };
-        return Enum.TryParse(parts[^1], out key) && key != Keys.None;
-    }
-
-    public static string FormatHotkey(Keys modifiers, Keys key)
-    {
-        var l = new List<string>();
-        if (modifiers.HasFlag(Keys.Control)) l.Add("Ctrl");
-        if (modifiers.HasFlag(Keys.Shift)) l.Add("Shift");
-        if (modifiers.HasFlag(Keys.Alt)) l.Add("Alt");
-        l.Add(key.ToString());
-        return string.Join('+', l);
+        key = Keys.None;
+        return Taswib.Core.Hotkey.TryParse(s, out mod, out var name) && Enum.TryParse(name, out key) && key != Keys.None;
     }
 }

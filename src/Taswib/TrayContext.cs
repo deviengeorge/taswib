@@ -1,8 +1,4 @@
-using System.Diagnostics;
-using System.Net.Http.Json;
 using System.Drawing.Imaging;
-using Velopack;
-using Velopack.Sources;
 using static Taswib.Strings;
 
 namespace Taswib;
@@ -15,6 +11,7 @@ sealed class TrayContext : ApplicationContext
     Icon? grayIcon;
     string lastFix = "";
     readonly HotkeyWindow win;
+    readonly Updater updater;
 
     public TrayContext(EventWaitHandle wake)
     {
@@ -25,9 +22,10 @@ sealed class TrayContext : ApplicationContext
         tray.MouseClick += (_, e) => { if (e.Button == MouseButtons.Left) ShowSettings(); }; // one left click opens the app
         win = new HotkeyWindow(async id => await RunFix(id == 1 ? Mode.Fix : Mode.Clean));
         ApplyHotkey();
-        _ = CheckUpdate(silent: true);
+        updater = new Updater(tray);
+        _ = updater.Check(silent: true);
         var recheck = new System.Windows.Forms.Timer { Interval = 4 * 60 * 60 * 1000 }; // PCs that never restart still get updates
-        recheck.Tick += (_, _) => _ = CheckUpdate(silent: true, restart: false);
+        recheck.Tick += (_, _) => _ = updater.Check(silent: true, restart: false);
         recheck.Start();
         var args = Environment.GetCommandLineArgs();
         if (Array.IndexOf(args, "--settings") >= 0) // used by the CI screenshots; handy as a shortcut too
@@ -40,7 +38,7 @@ sealed class TrayContext : ApplicationContext
         else After(1500, ShowNews);
     }
 
-    static void After(int ms, Action a)
+    internal static void After(int ms, Action a)
     {
         var t = new System.Windows.Forms.Timer { Interval = ms };
         t.Tick += (_, _) => { t.Stop(); t.Dispose(); a(); };
@@ -92,7 +90,7 @@ sealed class TrayContext : ApplicationContext
             new ToolStripMenuItem(T("fixnow"), Icons.Glyph('\uE8AC'), async (_, _) => await RunFix(Mode.Fix)),
             new ToolStripMenuItem(T("cleannow"), Icons.Glyph('\uE74D'), async (_, _) => await RunFix(Mode.Clean)),
             new ToolStripMenuItem(T("settings"), Icons.Glyph('\uE713'), (_, _) => ShowSettings()),
-            new ToolStripMenuItem(T("update"), Icons.Glyph('\uE895'), async (_, _) => await CheckUpdate()),
+            new ToolStripMenuItem(T("update"), Icons.Glyph('\uE895'), async (_, _) => await updater.Check()),
             new ToolStripMenuItem(T("exit"), Icons.Glyph('\uE7E8'), (_, _) => { tray.Visible = false; Application.Exit(); }),
         });
     }
@@ -141,7 +139,7 @@ sealed class TrayContext : ApplicationContext
         SettingsWindow f;
         do
         {
-            f = openForm = new SettingsWindow(Settings.Current, Startup.IsOn, (s, startup) => { s.Save(); Startup.Set(startup); ApplyHotkey(); }, report => CheckUpdate(report: report));
+            f = openForm = new SettingsWindow(Settings.Current, Startup.IsOn, (s, startup) => { s.Save(); Startup.Set(startup); ApplyHotkey(); }, report => updater.Check(report: report));
             await Ui.ShowAsync(f);
         } while (f.Reopen);
         settingsOpen = false; openForm = null;
@@ -149,62 +147,4 @@ sealed class TrayContext : ApplicationContext
     }
     bool settingsOpen;
     SettingsWindow? openForm;
-
-    // Installed (Setup.exe): download + restart into the new version. Portable exe: just open the release page.
-    // report != null (Settings button): show the result there; otherwise as a tray balloon.
-    bool retryPending;
-    async Task CheckUpdate(bool silent = false, bool restart = true, Action<string>? report = null)
-    {
-        void Say(string msg, ToolTipIcon icon = ToolTipIcon.Info, int ms = 3000)
-        {
-            if (report != null) report(msg); else tray.ShowBalloonTip(ms, "Taswib", msg, icon);
-        }
-        try
-        {
-            if (!silent) Say(T("chk"));
-            var feed = Environment.GetEnvironmentVariable("TASWIB_UPDATE_FEED"); // CI update test serves releases from a local folder
-            var mgr = string.IsNullOrEmpty(feed) ? new UpdateManager(new GithubSource($"https://github.com/{Links.Repo}", null, false)) : new UpdateManager(feed);
-            if (mgr.IsInstalled)
-            {
-                var info = await mgr.CheckForUpdatesAsync();
-                if (info == null) { if (!silent) Say(T("uptodate")); return; }
-                if (!silent) Say(T("updating", info.TargetFullRelease.Version));
-                var last = -1;
-                await mgr.DownloadUpdatesAsync(info, pct =>
-                {
-                    if (silent || pct / 10 == last) return; // every 10%, not every tick
-                    last = pct / 10;
-                    var msg = T("dl", pct);
-                    if (report != null) report(msg); else tray.Text = msg;
-                });
-                if (restart) { if (!silent) Say(T("restart")); mgr.ApplyUpdatesAndRestart(info); }
-                else Say(T("ready", info.TargetFullRelease.Version), ToolTipIcon.Info, 5000); // Velopack applies a downloaded update on next start; WaitExitThenApplyUpdates would kill the app after 60 s
-                return;
-            }
-            using var http = new HttpClient();
-            http.DefaultRequestHeaders.UserAgent.ParseAdd("Taswib");
-            var rel = await http.GetFromJsonAsync<Release>($"https://api.github.com/repos/{Links.Repo}/releases/latest");
-            var latest = Version.Parse(rel!.tag_name.TrimStart('v'));
-            if (latest > Program.Version)
-            {
-                if (silent) Say(T("newver", latest.ToString(3)), ToolTipIcon.Info, 5000); // startup check: never pop a browser
-                else { Say(T("newver_open", latest.ToString(3))); Process.Start(new ProcessStartInfo(rel.html_url) { UseShellExecute = true }); }
-            }
-            else if (!silent) Say(T("uptodate"));
-        }
-        catch (Exception e)
-        {
-            Log.Write("update check failed", e);
-            var offline = false;
-            for (var x = e; x != null; x = x.InnerException) if (x is System.Net.Http.HttpRequestException or System.Net.Sockets.SocketException) offline = true;
-            if (!silent) Say(T(offline ? "updfail" : "updfail2"), ToolTipIcon.Warning, 5000);
-            else if (offline && !retryPending) // e.g. started at login before Wi-Fi connected: don't wait for the 4-hour check
-            {
-                retryPending = true;
-                After(30 * 60 * 1000, () => { retryPending = false; _ = CheckUpdate(silent: true, restart: false); }); // no restart mid-use
-            }
-        }
-    }
-
-    record Release(string tag_name, string html_url);
 }
