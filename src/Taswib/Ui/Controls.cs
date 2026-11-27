@@ -39,11 +39,20 @@ public sealed class HotkeyBox : Border
 {
     readonly TextBlock text = new();
     readonly DispatcherTimer hintTimer = new() { Interval = TimeSpan.FromMilliseconds(2200) };
-    bool captured;
+
+    // State the text depends on. Changing any of them (or IsFocused) redraws through OnPropertyChanged.
+    /// <summary>Styled property behind <see cref="Value"/>.</summary>
+    public static readonly StyledProperty<string> ValueProperty = AvaloniaProperty.Register<HotkeyBox, string>(nameof(Value), "");
+    static readonly StyledProperty<bool> CapturedProperty = AvaloniaProperty.Register<HotkeyBox, bool>(nameof(Captured));
+    static readonly StyledProperty<string?> HintProperty = AvaloniaProperty.Register<HotkeyBox, string?>(nameof(Hint));
+    /// <summary>True once a key was pressed in this focus; until then the box shows "…".</summary>
+    bool Captured { get => GetValue(CapturedProperty); set => SetValue(CapturedProperty, value); }
+    /// <summary>Temporary warning shown instead of the value; cleared by the hint timer.</summary>
+    string? Hint { get => GetValue(HintProperty); set => SetValue(HintProperty, value); }
     /// <summary>When true, Delete clears the shortcut (for optional hotkeys).</summary>
     public bool AllowClear { get; set; }
     /// <summary>Current shortcut, e.g. <c>Ctrl+Shift+F</c>; empty when cleared.</summary>
-    public string Value { get; private set; } = "";
+    public string Value { get => GetValue(ValueProperty); private set => SetValue(ValueProperty, value); }
     /// <summary>Raised with the new value when the shortcut is recorded, reset or cleared.</summary>
     public event Action<string>? Changed;
 
@@ -51,27 +60,33 @@ public sealed class HotkeyBox : Border
     public HotkeyBox()
     {
         Focusable = true; Child = text;
-        hintTimer.Tick += (_, _) => { hintTimer.Stop(); Show(); };
+        hintTimer.Tick += (_, _) => { hintTimer.Stop(); Hint = null; };
+        Render();
     }
 
     /// <summary>Sets the starting value without raising <see cref="Changed"/>.</summary>
-    public void Init(string v) { Value = v; Show(); }
+    public void Init(string v) => Value = v;
     /// <summary>Sets the value and raises <see cref="Changed"/>.</summary>
-    public void Set(string v) { Value = v; captured = true; Show(); Changed?.Invoke(v); }
+    public void Set(string v) { Value = v; Captured = true; Changed?.Invoke(v); }
 
-    /// <summary>Shows the hint if given, else the value ("…" while waiting for a key, "—" when empty).</summary>
-    void Show(string? hint = null)
+    /// <summary>Redraws whenever the shown state changes, so no caller has to remember to.</summary>
+    protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs e)
     {
-        text.Classes.Set("hint", hint != null);
-        text.Text = hint ?? (IsFocused && !captured ? "…" : Value == "" ? "—" : Value); // "…" only until a key is pressed
+        base.OnPropertyChanged(e);
+        if (e.Property == ValueProperty || e.Property == CapturedProperty || e.Property == HintProperty || e.Property == IsFocusedProperty) Render();
+    }
+
+    /// <summary>Shows the hint if any, else the value ("…" while waiting for a key, "—" when empty).</summary>
+    void Render()
+    {
+        text.Classes.Set("hint", Hint != null);
+        text.Text = Hint ?? (IsFocused && !Captured ? "…" : Value == "" ? "—" : Value); // "…" only until a key is pressed
     }
 
     /// <summary>Click focuses the box so it starts listening.</summary>
     protected override void OnPointerPressed(PointerPressedEventArgs e) { Focus(); e.Handled = true; }
     /// <summary>Starts a new capture and shows the waiting mark.</summary>
-    protected override void OnGotFocus(GotFocusEventArgs e) { captured = false; Show(); base.OnGotFocus(e); }
-    /// <summary>Shows the stored value again.</summary>
-    protected override void OnLostFocus(Avalonia.Interactivity.RoutedEventArgs e) { Show(); base.OnLostFocus(e); }
+    protected override void OnGotFocus(GotFocusEventArgs e) { Captured = false; base.OnGotFocus(e); }
 
     /// <summary>Records the pressed shortcut. Waits past lone modifiers; rejects bare keys unsafe to own system-wide.</summary>
     protected override void OnKeyDown(KeyEventArgs e)
@@ -86,7 +101,7 @@ public sealed class HotkeyBox : Border
         if (m == KeyModifiers.None && !BareOk(key))
         {
             System.Media.SystemSounds.Beep.Play(); // a bare letter would be hijacked system-wide; keep old value
-            Show(T("hk_bare")); hintTimer.Stop(); hintTimer.Start();
+            Hint = T("hk_bare"); hintTimer.Stop(); hintTimer.Start();
             return;
         }
         var mods = (m.HasFlag(KeyModifiers.Control) ? Taswib.Core.Hotkey.Ctrl : 0) | (m.HasFlag(KeyModifiers.Shift) ? Taswib.Core.Hotkey.Shift : 0) | (m.HasFlag(KeyModifiers.Alt) ? Taswib.Core.Hotkey.Alt : 0);
